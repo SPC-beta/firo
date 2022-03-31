@@ -831,9 +831,6 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState& state, const C
             catch (CBadTxIn&) {
                 return state.Invalid(false, REJECT_CONFLICT, "txn-invalid-lelantus-joinsplit");
             }
-            catch (...) {
-                return state.Invalid(false, REJECT_CONFLICT, "failed to deserialize joinsplit");
-            }
 
             const std::vector<uint32_t> &ids = joinsplit->getCoinGroupIds();
             const std::vector<Scalar>& serials = joinsplit->getCoinSerialNumbers();
@@ -1082,9 +1079,6 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState& state, const C
                 }
                 catch (CBadTxIn&) {
                     return state.DoS(0, false, REJECT_INVALID, "unable to parse joinsplit");
-                }
-                catch (...) {
-                    return state.DoS(0, false, REJECT_INVALID, "failed to deserialize joinsplit");
                 }
             }
             // nModifiedFees includes any fee deltas from PrioritiseTransaction
@@ -1971,9 +1965,6 @@ bool CheckTxInputs(const CTransaction& tx, CValidationState& state, const CCoins
             catch (CBadTxIn&) {
                 return state.DoS(0, false, REJECT_INVALID, "unable to parse joinsplit");
             }
-            catch (...) {
-                return state.DoS(0, false, REJECT_INVALID, "failed to deserialize joinsplit");
-            }
         }
         if (nTxFee < 0)
             return state.DoS(100, false, REJECT_INVALID, "bad-txns-fee-negative");
@@ -2398,12 +2389,7 @@ static DisconnectResult DisconnectBlock(const CBlock& block, CValidationState& s
         if(tx.IsSigmaSpend())
             nFees += sigma::GetSigmaSpendInput(tx) - tx.GetValueOut();
         else if (tx.IsLelantusJoinSplit()) {
-            try {
-                nFees += lelantus::ParseLelantusJoinSplit(tx)->getFee();
-            }
-            catch (...) {
-                // do nothing
-            }
+            nFees += lelantus::ParseLelantusJoinSplit(tx)->getFee();
         }
 
         dbIndexHelper.DisconnectTransactionInputs(tx, pindex->nHeight, i, view);
@@ -2790,9 +2776,6 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
                 }
                 catch (CBadTxIn&) {
                     return state.DoS(0, false, REJECT_INVALID, "unable to parse joinsplit");
-                }
-                catch (...) {
-                    return state.DoS(0, false, REJECT_INVALID, "failed to deserialize joinsplit");
                 }
             }
 
@@ -3307,7 +3290,7 @@ bool static DisconnectTip(CValidationState& state, const CChainParams& chainpara
                 try {
                     joinsplit = lelantus::ParseLelantusJoinSplit(*tx);
                 }
-                catch (...) {
+                catch (CBadTxIn &) {
                     continue;
                 }
 
