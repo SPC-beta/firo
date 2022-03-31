@@ -745,11 +745,7 @@ bool CWallet::IsSpent(const uint256 &hash, unsigned int n) const
             return meta.isUsed;
         } else if (zwallet && (script.IsLelantusMint() || script.IsLelantusJMint())) {
             secp_primitives::GroupElement pubcoin;
-            try {
-                lelantus::ParseLelantusMintScript(script, pubcoin);
-            } catch (std::invalid_argument &) {
-                return false;
-            }
+            lelantus::ParseLelantusMintScript(script, pubcoin);
             uint256 hashPubcoin = primitives::GetPubCoinValueHash(pubcoin);
             CLelantusMintMeta meta;
             if(!zwallet->GetTracker().GetLelantusMetaFromPubcoin(hashPubcoin, meta)){
@@ -1429,7 +1425,7 @@ bool CWallet::AbandonTransaction(const uint256& hashTx)
             try {
                 joinsplit = lelantus::ParseLelantusJoinSplit(*wtx.tx);
             }
-            catch (...) {
+            catch (CBadTxIn&) {
                 continue;
             }
 
@@ -1594,7 +1590,7 @@ isminetype CWallet::IsMine(const CTxIn &txin, const CTransaction& tx) const
         try {
             joinsplit = lelantus::ParseLelantusJoinSplit(tx);
         }
-        catch (...) {
+        catch (CBadTxIn&) {
             return ISMINE_NO;
         }
 
@@ -1655,7 +1651,7 @@ CAmount CWallet::GetDebit(const CTxIn &txin, const CTransaction& tx, const ismin
         try {
             joinsplit = lelantus::ParseLelantusJoinSplit(tx);
         }
-        catch (...) {
+        catch (CBadTxIn&) {
             goto end;
         }
 
@@ -2083,12 +2079,7 @@ void CWalletTx::GetAmounts(std::list<COutputEntry>& listReceived,
             nFee = nDebit - nValueOut;
         }
         else
-            try {
-                nFee = lelantus::ParseLelantusJoinSplit(*tx)->getFee();
-            }
-            catch (...) {
-                // do nothing
-            }
+            nFee = lelantus::ParseLelantusJoinSplit(*tx)->getFee();
     }
 
     // Sent/received.
@@ -3699,11 +3690,7 @@ void CWallet::ListAvailableLelantusMintCoins(std::vector<COutput> &vCoins, bool 
             if (pcoin->tx->vout[i].scriptPubKey.IsLelantusMint() || pcoin->tx->vout[i].scriptPubKey.IsLelantusJMint()) {
                 CTxOut txout = pcoin->tx->vout[i];
                 secp_primitives::GroupElement pubCoin;
-                try {
-                    lelantus::ParseLelantusMintScript(txout.scriptPubKey, pubCoin);
-                } catch (std::invalid_argument &) {
-                    continue;
-                }
+                lelantus::ParseLelantusMintScript(txout.scriptPubKey, pubCoin);
                 LogPrintf("Pubcoin=%s\n", pubCoin.tostring());
                 // CHECKING PROCESS
                 BOOST_FOREACH(const CLelantusEntry& ownCoinItem, listOwnCoins) {
