@@ -123,13 +123,7 @@ void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& entry)
         } else if (txin.IsLelantusJoinSplit()) {
             in.push_back("joinsplit");
             fillStdFields(in, txin);
-            std::unique_ptr <lelantus::JoinSplit> jsplit;
-            try {
-                jsplit = lelantus::ParseLelantusJoinSplit(tx);
-            }
-            catch (...) {
-                continue;
-            }
+            std::unique_ptr<lelantus::JoinSplit> jsplit = lelantus::ParseLelantusJoinSplit(tx);
             in.push_back(Pair("nFees", ValueFromAmount(jsplit->getFee())));
             UniValue serials(UniValue::VARR);
             for (Scalar const & serial : jsplit->getCoinSerialNumbers()) {

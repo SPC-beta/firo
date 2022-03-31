@@ -132,7 +132,7 @@ CAmount GetSpendAmount(const CTransaction& tx) {
 }
 
 bool CheckSigmaBlock(CValidationState &state, const CBlock& block) {
-    const auto& consensus = ::Params().GetConsensus();
+    auto& consensus = ::Params().GetConsensus();
 
     size_t blockSpendsAmount = 0;
     CAmount blockSpendsValue(0);
@@ -661,11 +661,7 @@ bool GetOutPointFromBlock(COutPoint& outPoint, const GroupElement &pubCoinValue,
                 // CWallet::CreateZerocoinMintModelV3 around "scriptSerializedCoin << OP_ZEROCOINMINTV3";
                 std::vector<unsigned char> coin_serialised(txout.scriptPubKey.begin() + 1,
                                                       txout.scriptPubKey.end());
-                try {
-                    txPubCoinValue.deserialize(&coin_serialised[0]);
-                } catch (...) {
-                    return false;
-                }
+                txPubCoinValue.deserialize(&coin_serialised[0]);
                 if(pubCoinValue==txPubCoinValue){
                     outPoint = COutPoint(tx->GetHash(), nIndex);
                     return true;
@@ -1100,7 +1096,7 @@ void CSigmaState::GetAnonymitySet(
         return;
 
     SigmaCoinGroupInfo coinGroup = coinGroups[denomAndId];
-    const auto &params = ::Params().GetConsensus();
+    auto params = ::Params().GetConsensus();
     int maxHeight = fStartSigmaBlacklist ? (chainActive.Height() - (ZC_MINT_CONFIRMATIONS - 1)) : (params.nStartSigmaBlacklist - 1);
 
     for (CBlockIndex *block = coinGroup.lastBlock;

@@ -63,11 +63,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const CWallet *
     if (wtx.tx->IsZerocoinSpend() || isAllSigmaSpendFromMe || isAllJoinSplitFromMe) {
         CAmount nTxFee = nDebit - wtx.tx->GetValueOut();
         if (isAllJoinSplitFromMe && wtx.tx->vin.size() > 0) {
-            try {
-                nTxFee = lelantus::ParseLelantusJoinSplit(*wtx.tx)->getFee();
-            } catch (...) {
-                // do nothing
-            }
+            nTxFee = lelantus::ParseLelantusJoinSplit(*wtx.tx)->getFee();
         }
 
         bool first = true;
