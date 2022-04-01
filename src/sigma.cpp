@@ -132,7 +132,7 @@ CAmount GetSpendAmount(const CTransaction& tx) {
 }
 
 bool CheckSigmaBlock(CValidationState &state, const CBlock& block) {
-    const auto& consensus = ::Params().GetConsensus();
+    auto& consensus = ::Params().GetConsensus();
 
     size_t blockSpendsAmount = 0;
     CAmount blockSpendsValue(0);
@@ -1096,7 +1096,7 @@ void CSigmaState::GetAnonymitySet(
         return;
 
     SigmaCoinGroupInfo coinGroup = coinGroups[denomAndId];
-    const auto &params = ::Params().GetConsensus();
+    auto params = ::Params().GetConsensus();
     int maxHeight = fStartSigmaBlacklist ? (chainActive.Height() - (ZC_MINT_CONFIRMATIONS - 1)) : (params.nStartSigmaBlacklist - 1);
 
     for (CBlockIndex *block = coinGroup.lastBlock;
