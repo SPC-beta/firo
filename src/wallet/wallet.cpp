@@ -3258,7 +3258,7 @@ bool CWallet::GetCoinsToJoinSplit(
 {
 
     EnsureMintWalletAvailable();
-    const Consensus::Params &consensusParams = Params().GetConsensus();
+    Consensus::Params consensusParams = Params().GetConsensus();
 
     if (required > consensusParams.nMaxValueLelantusSpendPerTransaction) {
         throw std::invalid_argument(_("The required amount exceeds spend limit"));
@@ -5464,7 +5464,7 @@ std::pair<CAmount, unsigned int> CWallet::EstimateJoinSplitFee(
 
         spendCoins.clear();
         sigmaSpendCoins.clear();
-        const auto &consensusParams = Params().GetConsensus();
+        auto &consensusParams = Params().GetConsensus();
         CAmount changeToMint = 0;
 
         std::vector<sigma::CoinDenomination> denomChanges;
