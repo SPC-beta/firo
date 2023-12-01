@@ -13,9 +13,9 @@ from test_framework.util import assert_equal, assert_raises_jsonrpc, \
 from decimal import Decimal
 
 '''
-llmq-is-lelantus.py
+llmq-is-spark.py
 
-Testing Instantsend for Lelantus transactions
+Testing Instantsend for Spark transactions
 '''
 
 class LLMQ_IS_Lelantus(EvoZnodeTestFramework):
@@ -28,9 +28,11 @@ class LLMQ_IS_Lelantus(EvoZnodeTestFramework):
         self.mine_quorum()
         self.wait_for_chainlocked_block_all_nodes(self.nodes[0].getbestblockhash())
 
-        self.nodes[0].generate(401 - self.nodes[0].getblockcount())
+        self.nodes[0].generate(1001 - self.nodes[0].getblockcount())
+
+        sparkaddress = self.nodes[0].getnewsparkaddress()[0]
         for i in range(0, 3):
-            mintTxids = self.nodes[0].mintlelantus(1)
+            mintTxids = self.nodes[0].mintspark({sparkaddress: {"amount": 1, "memo":"Test memo"}})
 
         for mintTxid in mintTxids:
             mintTx = self.nodes[0].getrawtransaction(mintTxid, 1)
@@ -49,32 +51,8 @@ class LLMQ_IS_Lelantus(EvoZnodeTestFramework):
         self.nodes[0].generate(3)
         assert (self.nodes[0].getrawtransaction(mintTxid, True)['confirmations'] > 0)
 
-        jsplitTxid = self.nodes[0].joinsplit({self.sporkAddress: 0.1})
-        assert(self.wait_for_instantlock(jsplitTxid, self.nodes[0]))
-
-        self.nodes[0].stop()
-        bitcoind_processes[0].wait()
-        self.nodes[0] = start_node(0, self.options.tmpdir, ["-zapwallettxes=1"])
-        for i in range(1, self.num_nodes):
-            if i < len(self.nodes) and self.nodes[i] is not None:
-                connect_nodes_bi(self.nodes, 0, i)
-
-        jsplitTx1id = self.nodes[0].joinsplit({self.sporkAddress: 0.11}) # This uses the already islocked coin serial. No islock expected.
-        self.wait_for_instantlock(jsplitTx1id, self.nodes[1], False, 5, True)
-        jsplitTx2id = self.nodes[0].joinsplit({self.sporkAddress: 0.11}) # This uses a new coin serial. An islock is expected.
-        self.wait_for_instantlock(jsplitTx2id, self.nodes[1], True, 5, True)
-
-        # Disabling IS
-        self.nodes[0].importprivkey(self.sporkprivkey)
-        self.nodes[0].spork(self.sporkprivkey, self.sporkAddress, {"disable": {"instantsend": self.nodes[0].getblockcount() + 3}})
-        self.nodes[0].generate(3)
-        sync_blocks(self.nodes)
-
-        mintTxid = self.nodes[0].mintlelantus(1)
-        self.wait_for_instantlock(mintTxid, self.nodes[0],  False, 15, do_assert=True) #There should be no islock
-
-        rawTxDspend = self.nodes[0].createrawtransaction(mintTx['vin'], {self.nodes[0].getnewaddress(): 0.999})
-        assert_raises_jsonrpc(-25, 'Missing inputs', self.nodes[0].sendrawtransaction, rawTxDspend)
+        spendTxid = self.nodes[0].spendspark({self.sporkAddress: {"amount": 0.1, "subtractFee": False}})
+        assert(self.wait_for_instantlock(spendTxid, self.nodes[0]))
 
 if __name__ == '__main__':
     LLMQ_IS_Lelantus().main()
