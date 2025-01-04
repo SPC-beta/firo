@@ -5,9 +5,7 @@
 
 #include "util.h"
 
-#ifdef ENABLE_WALLET
 #include "../wallet/wallet.h"
-#endif // ENABLE_WALLET
 #include "../wallet/bip39.h"
 #include "support/allocators/secure.h"
 
@@ -31,9 +29,6 @@ Recover::Recover(QWidget *parent) :
 
     connect(this, &Recover::stopThread, thread, &QThread::quit);
     thread->start();
-
-    ui->dateInput->setDisplayFormat("dd-MM-yyyy");
-    ui->dateInput->setMinimumDate(QDate(2019, 12, 11));
 }
 
 Recover::~Recover()
@@ -50,8 +45,6 @@ void Recover::setCreateNew()
     ui->textLabel2->setEnabled(false);
     ui->mnemonicWords->setEnabled(false);
     ui->mnemonicWords->clear();
-    ui->dateInput->setEnabled(false);
-    ui->dateInput->clear();
     ui->use24->setChecked(true);
     ui->usePassphrase->setChecked(false);
     ui->textLabel3->setEnabled(false);
@@ -63,18 +56,12 @@ void Recover::setCreateNew()
 void Recover::on_createNew_clicked()
 {
     setCreateNew();
-    ui->dateInput->setDisplayFormat("dd-MM-yyyy");
-    ui->dateInput->setDate(QDate(2019, 12, 11));
 }
 
 void Recover::on_recoverExisting_clicked()
 {
     ui->textLabel2->setEnabled(true);
     ui->mnemonicWords->setEnabled(true);
-    ui->dateInput->setEnabled(true);
-    ui->dateInput->setEnabled(true);
-    ui->dateInput->setDisplayFormat("dd-MM-yyyy");
-    ui->dateInput->setDate(ui->dateInput->minimumDate());
 }
 
 void Recover::on_usePassphrase_clicked()
@@ -92,7 +79,6 @@ void Recover::on_usePassphrase_clicked()
 
 bool Recover::askRecover(bool& newWallet)
 {
-#ifdef ENABLE_WALLET
     namespace fs = boost::filesystem;
     fs::path walletFile = GetDataDir(true) / GetArg("-wallet", DEFAULT_WALLET_DAT);
 
@@ -117,10 +103,6 @@ bool Recover::askRecover(bool& newWallet)
                 if(recover.ui->recoverExisting->isChecked()) {
                     newWallet = false;
                     std::string mnemonic = recover.ui->mnemonicWords->text().toStdString();
-                    QDate date = recover.ui->dateInput->date();
-                    QDate newDate = date.addDays(-1);
-                    recover.ui->dateInput->setDate(newDate);
-                    SoftSetArg("-wcdate", recover.ui->dateInput->text().toStdString());
                     const char* str = mnemonic.c_str();
                     bool space = true;
                     int n = 0;
@@ -185,6 +167,5 @@ bool Recover::askRecover(bool& newWallet)
             }
         }
     }
-#endif // ENABLE_WALLET
     return true;
 }

@@ -33,6 +33,11 @@
 #include "wallet/db.h"
 #include "wallet/wallet.h"
 #include <memory>
+
+#ifdef ENABLE_ELYSIUM
+#include "../elysium/elysium.h"
+#endif
+
 #include <boost/filesystem.hpp>
 #include <boost/test/unit_test.hpp>
 #include <boost/test/unit_test_monitor.hpp>
@@ -122,8 +127,6 @@ TestingSetup::TestingSetup(const std::string& chainName, std::string suf) : Basi
         pwalletMain->SetBestChain(chainActive.GetLocator());
 
         pwalletMain->zwallet = std::make_unique<CHDMintWallet>(pwalletMain->strWalletFile);
-        pwalletMain->sparkWallet = std::make_unique<CSparkWallet>(pwalletMain->strWalletFile);
-
         pwalletMain->zwallet->GetTracker().Init();
         pwalletMain->zwallet->LoadMintPoolFromDB();
         pwalletMain->zwallet->SyncWithChain();
@@ -134,7 +137,9 @@ TestingSetup::~TestingSetup()
     UnregisterNodeSignals(GetNodeSignals());
     llmq::InterruptLLMQSystem();
     llmq::DestroyLLMQSystem();
-
+#ifdef ENABLE_ELYSIUM
+    elysium_shutdown();
+#endif
     threadGroup.interrupt_all();
     threadGroup.join_all();
     UnloadBlockIndex();
@@ -186,12 +191,10 @@ CBlock TestChain100Setup::CreateBlock(const std::vector<CMutableTransaction>& tx
     }
 
     // Replace mempool-selected txns with just coinbase plus passed-in txns:
-    if (!fAllowMempoolTxsInCreateBlock) {
+    if (!fAllowMempoolTxsInCreateBlock)
         block.vtx.resize(1);
-        // Re-add quorum commitments
-        block.vtx.insert(block.vtx.end(), llmqCommitments.begin(), llmqCommitments.end());
-    }
-    
+    // Re-add quorum commitments
+    block.vtx.insert(block.vtx.end(), llmqCommitments.begin(), llmqCommitments.end());
     BOOST_FOREACH(const CMutableTransaction& tx, txns)
         block.vtx.push_back(MakeTransactionRef(tx));
 

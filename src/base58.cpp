@@ -222,7 +222,6 @@ public:
     CBitcoinAddressVisitor(CBitcoinAddress* addrIn) : addr(addrIn) {}
 
     bool operator()(const CKeyID& id) const { return addr->Set(id); }
-    bool operator()(const CExchangeKeyID& id) const { return addr->Set(id); }
     bool operator()(const CScriptID& id) const { return addr->Set(id); }
     bool operator()(const CNoDestination& no) const { return false; }
 };
@@ -232,18 +231,6 @@ public:
 bool CBitcoinAddress::Set(const CKeyID& id)
 {
     SetData(Params().Base58Prefix(CChainParams::PUBKEY_ADDRESS), &id, 20);
-    return true;
-}
-
-bool CBitcoinAddress::Set(const CExchangeKeyID& id)
-{
-    SetData(Params().Base58Prefix(CChainParams::EXCHANGE_PUBKEY_ADDRESS), &id, 20);
-    return true;
-}
-
-bool CBitcoinAddress::SetExchange(const CKeyID& id)
-{
-    SetData(Params().Base58Prefix(CChainParams::EXCHANGE_PUBKEY_ADDRESS), &id, 20);
     return true;
 }
 
@@ -267,8 +254,7 @@ bool CBitcoinAddress::IsValid(const CChainParams& params) const
 {
     bool fCorrectSize = vchData.size() == 20;
     bool fKnownVersion = vchVersion == params.Base58Prefix(CChainParams::PUBKEY_ADDRESS) ||
-                         vchVersion == params.Base58Prefix(CChainParams::SCRIPT_ADDRESS) ||
-                         vchVersion == params.Base58Prefix(CChainParams::EXCHANGE_PUBKEY_ADDRESS);
+                         vchVersion == params.Base58Prefix(CChainParams::SCRIPT_ADDRESS);
     return fCorrectSize && fKnownVersion;
 }
 
@@ -282,8 +268,6 @@ CTxDestination CBitcoinAddress::Get() const
         return CKeyID(id);
     else if (vchVersion == Params().Base58Prefix(CChainParams::SCRIPT_ADDRESS))
         return CScriptID(id);
-    else if (vchVersion == Params().Base58Prefix(CChainParams::EXCHANGE_PUBKEY_ADDRESS))
-        return CExchangeKeyID(id);
     else
         return CNoDestination();
 }
@@ -297,10 +281,6 @@ bool CBitcoinAddress::GetIndexKey(uint160& hashBytes, AddressType & type) const
         memcpy(&hashBytes, &vchData[0], 20);
         type = AddressType::payToPubKeyHash;
         return true;
-    } else if (vchVersion == Params().Base58Prefix(CChainParams::EXCHANGE_PUBKEY_ADDRESS)) {
-        memcpy(&hashBytes, &vchData[0], 20);
-        type = AddressType::payToExchangeAddress;
-        return true;
     } else if (vchVersion == Params().Base58Prefix(CChainParams::SCRIPT_ADDRESS)) {
         memcpy(&hashBytes, &vchData[0], 20);
         type = AddressType::payToScriptHash;
@@ -313,17 +293,6 @@ bool CBitcoinAddress::GetIndexKey(uint160& hashBytes, AddressType & type) const
 bool CBitcoinAddress::GetKeyID(CKeyID& keyID) const
 {
     if (!IsValid() || vchVersion != Params().Base58Prefix(CChainParams::PUBKEY_ADDRESS))
-        return false;
-    uint160 id;
-    memcpy(&id, &vchData[0], 20);
-    keyID = CKeyID(id);
-    return true;
-}
-
-bool CBitcoinAddress::GetKeyIDExt(CKeyID& keyID) const
-{
-    if (!IsValid() || !(vchVersion == Params().Base58Prefix(CChainParams::PUBKEY_ADDRESS) ||
-                        vchVersion == Params().Base58Prefix(CChainParams::EXCHANGE_PUBKEY_ADDRESS)))
         return false;
     uint160 id;
     memcpy(&id, &vchData[0], 20);

@@ -114,10 +114,6 @@ public:
     {
         return (exp_addrType == "pubkey");
     }
-    bool operator()(const CExchangeKeyID &id) const
-    {
-        return (exp_addrType == "exchangepubkey");
-    }
     bool operator()(const CScriptID &id) const
     {
         return (exp_addrType == "script");

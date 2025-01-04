@@ -10,8 +10,19 @@
 
 namespace immer {
 
-struct disowned
-{};
+struct disowned {};
+
+struct no_spinlock
+{
+    bool try_lock() { return true; }
+    void lock() {}
+    void unlock() {}
+
+    struct scoped_lock
+    {
+        scoped_lock(no_spinlock&) {}
+    };
+};
 
 /*!
  * Disables reference counting, to be used with an alternative garbage
@@ -19,11 +30,14 @@ struct disowned
  */
 struct no_refcount_policy
 {
-    no_refcount_policy(){};
+    using spinlock_type = no_spinlock;
+
+    no_refcount_policy() {};
     no_refcount_policy(disowned) {}
 
     void inc() {}
     bool dec() { return false; }
+    void dec_unsafe() {}
     bool unique() { return false; }
 };
 

@@ -66,15 +66,11 @@ public:
     enum ColumnIndex {
         Date = 0,
         Label = 1,
-        AddressType = 2,
-        Message = 3,
-        Amount = 4,
+        Message = 2,
+        Amount = 3,
         NUMBER_OF_COLUMNS
     };
 
-    static const QString Transparent;
-    static const QString Spark;
-    
     /** @name Methods overridden from QAbstractTableModel
         @{*/
     int rowCount(const QModelIndex &parent) const;
@@ -82,7 +78,7 @@ public:
     QVariant data(const QModelIndex &index, int role) const;
     bool setData(const QModelIndex &index, const QVariant &value, int role);
     QVariant headerData(int section, Qt::Orientation orientation, int role) const;
-    QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const;
+    QModelIndex index(int row, int column, const QModelIndex &parent) const;
     bool removeRows(int row, int count, const QModelIndex &parent = QModelIndex());
     Qt::ItemFlags flags(const QModelIndex &index) const;
     /*@}*/

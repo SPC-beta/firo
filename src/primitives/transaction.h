@@ -35,8 +35,7 @@ enum {
     TRANSACTION_COINBASE = 5,
     TRANSACTION_QUORUM_COMMITMENT = 6,
     TRANSACTION_SPORK = 7,
-    TRANSACTION_LELANTUS = 8,
-    TRANSACTION_SPARK = 9
+    TRANSACTION_LELANTUS = 8
 };
 
 /** An outpoint - a combination of a transaction hash and an index n into its vout */
@@ -368,6 +367,7 @@ class CTransaction
 {
 public:
     // Default transaction version.
+    // TODO: confirm Exodus works with transaction v2 and change it to 2 here
     static const int32_t CURRENT_VERSION=1;
 
     // Changing the default transaction version requires a two step process: first
@@ -453,12 +453,7 @@ public:
 
     bool IsZerocoinRemint() const;
 
-    bool IsSparkTransaction() const;
-    bool IsSparkSpend() const;
-    bool IsSparkMint() const;
-
     bool HasNoRegularInputs() const;
-    bool HasPrivateInputs() const;
 
     /**
      * Get the total transaction size in bytes, including witness data.
@@ -473,8 +468,7 @@ public:
             || (vin[0].scriptSig[0] != OP_ZEROCOINSPEND
             && vin[0].scriptSig[0] != OP_ZEROCOINTOSIGMAREMINT
             && vin[0].scriptSig[0] != OP_LELANTUSJOINSPLIT
-            && vin[0].scriptSig[0] != OP_LELANTUSJOINSPLITPAYLOAD
-            && vin[0].scriptSig[0] != OP_SPARKSPEND)));
+            && vin[0].scriptSig[0] != OP_LELANTUSJOINSPLITPAYLOAD)));
     }
 
     friend bool operator==(const CTransaction& a, const CTransaction& b)

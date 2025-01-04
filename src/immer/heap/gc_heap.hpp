@@ -17,34 +17,30 @@
 #error "Using garbage collection requires libgc"
 #endif
 
-#include <cassert>
 #include <cstdlib>
-#include <exception>
 #include <memory>
 
 namespace immer {
 
-#ifdef IMMER_GC_REQUIRE_INIT
-#define IMMER_GC_REQUIRE_INIT_ IMMER_GC_REQUIRE_INIT
-#elifdef __APPLE__
-#define IMMER_GC_REQUIRE_INIT_ 1
+#ifdef __APPLE__
+#define IMMER_GC_REQUIRE_INIT 1
 #else
-#define IMMER_GC_REQUIRE_INIT_ 0
+#define IMMER_GC_REQUIRE_INIT 0
 #endif
 
-#if IMMER_GC_REQUIRE_INIT_
+#if IMMER_GC_REQUIRE_INIT
 
 namespace detail {
 
-template <int Dummy = 0>
+template <int Dummy=0>
 struct gc_initializer
 {
-    gc_initializer() { GC_INIT(); }
+    gc_initializer() { GC_init(); }
     static gc_initializer init;
 };
 
 template <int D>
-gc_initializer<D> gc_initializer<D>::init{};
+gc_initializer<D> gc_initializer<D>::init {};
 
 inline void gc_initializer_guard()
 {
@@ -60,7 +56,7 @@ inline void gc_initializer_guard()
 
 #define IMMER_GC_INIT_GUARD_
 
-#endif // IMMER_GC_REQUIRE_INIT_
+#endif // IMMER_GC_REQUIRE_INIT
 
 /*!
  * Heap that uses a tracing garbage collector.
@@ -107,7 +103,7 @@ public:
         IMMER_GC_INIT_GUARD_;
         auto p = GC_malloc(n);
         if (IMMER_UNLIKELY(!p))
-            IMMER_THROW(std::bad_alloc{});
+            throw std::bad_alloc{};
         return p;
     }
 
@@ -116,11 +112,14 @@ public:
         IMMER_GC_INIT_GUARD_;
         auto p = GC_malloc_atomic(n);
         if (IMMER_UNLIKELY(!p))
-            IMMER_THROW(std::bad_alloc{});
+            throw std::bad_alloc{};
         return p;
     }
 
-    static void deallocate(std::size_t, void* data) { GC_free(data); }
+    static void deallocate(std::size_t, void* data)
+    {
+        GC_free(data);
+    }
 
     static void deallocate(std::size_t, void* data, norefs_tag)
     {

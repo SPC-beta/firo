@@ -268,7 +268,6 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
 
     try
     {
-        bool fFirstOpCode = true;
         while (pc < pend)
         {
             bool fExec = !count(vfExec.begin(), vfExec.end(), false);
@@ -344,13 +343,6 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                 // Control
                 //
                 case OP_NOP:
-                    break;
-
-                case OP_EXCHANGEADDR:
-                    // allow OP_EXCHANGEADDR only at the beginning of the script
-                    if (!fFirstOpCode)
-                        return set_error(serror, SCRIPT_ERR_BAD_OPCODE);
-                    // otherwise NOOP
                     break;
 
                 case OP_CHECKLOCKTIMEVERIFY:
@@ -1038,8 +1030,6 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
             // Size limits
             if (stack.size() + altstack.size() > 1000)
                 return set_error(serror, SCRIPT_ERR_STACK_SIZE);
-
-            fFirstOpCode = false;
         }
     }
     catch (...)

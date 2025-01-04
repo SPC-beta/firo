@@ -14,10 +14,6 @@
 #include "walletmodel.h"
 
 #include <QSettings>
-#include <QMessageBox>
-#include <QTimer>
-#include <QResizeEvent>
-
 
 class ClientModel;
 class TransactionFilterProxy;
@@ -46,12 +42,9 @@ public:
     void setWalletModel(WalletModel *walletModel);
     void showOutOfSyncWarning(bool fShow);
     void UpdatePropertyBalance(unsigned int propertyId, uint64_t available, uint64_t reserved);
-    void resizeEvent(QResizeEvent* event) override;
 
 public Q_SLOTS:
     void on_anonymizeButton_clicked();
-    void migrateClicked();
-    void onRefreshClicked();
 
     void setBalance(
         const CAmount& balance,
@@ -63,11 +56,17 @@ public Q_SLOTS:
         const CAmount& privateBalance,
         const CAmount& unconfirmedPrivateBalance,
         const CAmount& anonymizableBalance);
+    //void updateElysium();
+    //void reinitElysium();
 
 Q_SIGNALS:
     void transactionClicked(const QModelIndex &index);
     void enabledTorChanged();
     void outOfSyncWarningClicked();
+#ifdef ENABLE_ELYSIUM
+    void elysiumTransactionClicked(const uint256& txid);
+#endif
+
 private:
     Ui::OverviewPage *ui;
     ClientModel *clientModel;
@@ -87,12 +86,6 @@ private:
     TxViewDelegate *txdelegate;
     std::unique_ptr<TransactionFilterProxy> filter;
 
-    QTimer countDownTimer;
-    int secDelay;
-    QString migrationWindowClosesIn;
-    QString blocksRemaining;
-    QString migrateAmount;
-    void adjustTextSize(int width,int height);
 private Q_SLOTS:
     void updateDisplayUnit();
     void handleTransactionClicked(const QModelIndex &index);
@@ -100,22 +93,6 @@ private Q_SLOTS:
     void updateAlerts(const QString &warnings);
     void updateWatchOnlyLabels(bool showWatchOnly);
     void handleOutOfSyncWarningClicks();
-    void countDown();
-};
-
-class MigrateLelantusToSparkDialog : public QMessageBox
-{
-    Q_OBJECT
-private:
-    bool clickedButton;
-    WalletModel *model;
-public:
-    MigrateLelantusToSparkDialog(WalletModel *model);
-    bool getClickedButton();
-
-private Q_SLOTS:
-    void onIgnoreClicked();
-    void onMigrateClicked();
 };
 
 #endif // BITCOIN_QT_OVERVIEWPAGE_H

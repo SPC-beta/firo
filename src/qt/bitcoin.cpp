@@ -21,7 +21,7 @@
 #include "splashscreen.h"
 #include "utilitydialog.h"
 #include "winshutdownmonitor.h"
-#include "askpassphrasedialog.h"
+
 #ifdef ENABLE_WALLET
 #include "paymentserver.h"
 #include "walletmodel.h"
@@ -43,7 +43,6 @@
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/thread.hpp>
-#include <fstream>
 
 #include <QApplication>
 #include <QDebug>
@@ -238,9 +237,6 @@ public:
     WId getMainWinId() const;
 
 public Q_SLOTS:
-#ifdef ENABLE_WALLET
-    void unlockWallet_(void * wallet);
-#endif
     void initializeResult(int retval);
     void shutdownResult(int retval);
     /// Handle runaway exceptions. Shows a message box with the problem and quits the program.
@@ -326,15 +322,6 @@ void BitcoinCore::shutdown()
     }
 }
 
-#ifdef ENABLE_WALLET
-static void unlockWallet(BitcoinApplication* application, CWallet* wallet)
-{
-    Q_UNUSED(wallet);
-    QMetaObject::invokeMethod(application, "unlockWallet_", Qt::QueuedConnection,
-                              Q_ARG(void *, wallet));
-}
-#endif
-
 BitcoinApplication::BitcoinApplication(int &argc, char **argv):
     QApplication(argc, argv),
     coreThread(0),
@@ -359,10 +346,6 @@ BitcoinApplication::BitcoinApplication(int &argc, char **argv):
     if (!platformStyle) // Fall back to "other" if specified name not found
         platformStyle = PlatformStyle::instantiate("other");
     assert(platformStyle);
-
-#ifdef ENABLE_WALLET
-    UnlockWallet.connect(boost::bind(unlockWallet, this, _1));
-#endif
 }
 
 BitcoinApplication::~BitcoinApplication()
@@ -380,8 +363,6 @@ BitcoinApplication::~BitcoinApplication()
 #ifdef ENABLE_WALLET
     delete paymentServer;
     paymentServer = 0;
-    UnlockWallet.disconnect(boost::bind(unlockWallet, this, _1));
-
 #endif
     delete optionsModel;
     optionsModel = 0;
@@ -393,23 +374,6 @@ BitcoinApplication::~BitcoinApplication()
 void BitcoinApplication::createPaymentServer()
 {
     paymentServer = new PaymentServer(this);
-}
-
-void BitcoinApplication::unlockWallet_(void * wallet)
-{
-    CWallet * wallet_ = reinterpret_cast<CWallet *>(wallet);
-
-    QString info = tr("You need to unlock to allow Spark wallet be created.");
-
-    walletModel = new WalletModel(platformStyle, wallet_, optionsModel);
-
-    // Unlock wallet when requested by wallet model
-    if (walletModel->getEncryptionStatus() == WalletModel::Locked)
-    {
-        AskPassphraseDialog dlg(AskPassphraseDialog::Unlock, this->window, info);
-        dlg.setModel(walletModel);
-        dlg.exec();
-    }
 }
 #endif
 
@@ -429,7 +393,7 @@ void BitcoinApplication::createWindow(const NetworkStyle *networkStyle)
 
 void BitcoinApplication::createSplashScreen(const NetworkStyle *networkStyle)
 {
-    SplashScreen *splash = new SplashScreen(QPixmap(), Qt::WindowFlags());
+    SplashScreen *splash = new SplashScreen(QPixmap(), 0);
     // We don't hold a direct pointer to the splash screen after creation, but the splash
     // screen will take care of deleting itself when slotFinish happens.
     splash->show();
@@ -507,6 +471,11 @@ void BitcoinApplication::initializeResult(int retval)
     {
         // Log this only after AppInit2 finishes, as then logging setup is guaranteed complete
         qWarning() << "Platform customization:" << platformStyle->getName();
+#ifdef ENABLE_WALLET
+        PaymentServer::LoadRootCAs();
+        paymentServer->setOptionsModel(optionsModel);
+#endif
+
         clientModel = new ClientModel(optionsModel);
         window->setClientModel(clientModel);
 
@@ -517,6 +486,8 @@ void BitcoinApplication::initializeResult(int retval)
 
             window->addWallet(BitcoinGUI::DEFAULT_WALLET, walletModel);
             window->setCurrentWallet(BitcoinGUI::DEFAULT_WALLET);
+
+            connect(walletModel, &WalletModel::coinsSent, paymentServer, &PaymentServer::fetchPaymentACK);
 
 #endif
 
@@ -581,7 +552,7 @@ bool BitcoinApplication::migrateSettings(const QString &oldOrganizationName, con
     QSettings oldSettings(oldOrganizationName, oldApplicationName);
     QList<QString> keys = oldSettings.allKeys();
     if (!keys.empty()) {
-        for (const QString &key : keys) {
+        Q_FOREACH(const QString &key, keys) {
             newSettings.setValue(key, oldSettings.value(key));
         }
         newSettings.sync();
@@ -658,7 +629,7 @@ void BitcoinApplication::migrateToFiro()
     }
     else if (doNotShowAgain) {
         // create file to block migration in the future
-        std::ofstream(dontMigrateFilePath.string()).flush();
+        boost::filesystem::ofstream(dontMigrateFilePath).flush();
     }
 }
 

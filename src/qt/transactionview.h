@@ -9,7 +9,6 @@
 
 #include <QWidget>
 #include <QKeyEvent>
-#include <QResizeEvent>
 
 class PlatformStyle;
 class TransactionFilterProxy;
@@ -38,8 +37,6 @@ public:
     explicit TransactionView(const PlatformStyle *platformStyle, QWidget *parent = 0);
 
     void setModel(WalletModel *model);
-    void resizeEvent(QResizeEvent* event) override;
-    void adjustTextSize(int width, int height);
 
     // Date ranges for filter
     enum DateEnum
@@ -54,14 +51,13 @@ public:
     };
 
     enum ColumnWidths {
-        STATUS_COLUMN_WIDTH = 50,
+        STATUS_COLUMN_WIDTH = 30,
         WATCHONLY_COLUMN_WIDTH = 23,
         INSTANTSEND_COLUMN_WIDTH = 23,
         DATE_COLUMN_WIDTH = 120,
         TYPE_COLUMN_WIDTH = 113,
         AMOUNT_MINIMUM_COLUMN_WIDTH = 120,
-        MINIMUM_COLUMN_WIDTH = 23,
-        ADDRESS_COLUMN_WIDTH = 300
+        MINIMUM_COLUMN_WIDTH = 23
     };
 
 private:
@@ -91,6 +87,10 @@ private:
     QWidget *createDateRangeWidget();
     void updateCalendarWidgets();
 
+    GUIUtil::TableViewLastColumnResizingFixer *columnResizingFixer;
+
+    virtual void resizeEvent(QResizeEvent* event);
+
     bool eventFilter(QObject *obj, QEvent *event);
 
 private Q_SLOTS:
@@ -110,6 +110,7 @@ private Q_SLOTS:
     void abandonTx();
     void rebroadcastTx();
     void reconsiderBip47Tx();
+
 Q_SIGNALS:
     void doubleClicked(const QModelIndex&);
 

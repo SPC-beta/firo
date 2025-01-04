@@ -88,7 +88,6 @@ isminetype IsMine(const CKeyStore &keystore, const CScript& scriptPubKey, bool& 
         break;
     }
     case TX_PUBKEYHASH:
-    case TX_EXCHANGEADDRESS:
         keyID = CKeyID(uint160(vSolutions[0]));
         if (sigversion != SIGVERSION_BASE) {
             CPubKey pubkey;
@@ -148,8 +147,6 @@ isminetype IsMine(const CKeyStore &keystore, const CScript& scriptPubKey, bool& 
             return ISMINE_SPENDABLE;
         break;
     }
-    case TX_SPARKMINT: {}
-    case TX_SPARKSMINT: {}
     }
 
     if (keystore.HaveWatchOnly(scriptPubKey)) {

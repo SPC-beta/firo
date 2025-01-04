@@ -25,9 +25,7 @@
 #include "util.h"
 #include "utilmoneystr.h"
 #include "validationinterface.h"
-#ifdef ENABLE_WALLET
 #include "wallet/wallet.h"
-#endif // ENABLE_WALLET
 #include "definition.h"
 #include "crypto/scrypt.h"
 #include "crypto/MerkleTreeProof/mtp.h"
@@ -155,9 +153,6 @@ void BlockAssembler::resetBlock()
 
     nLelantusSpendAmount = 0;
     nLelantusSpendInputs = 0;
-
-    nSparkSpendAmount = 0;
-    nSparkSpendInputs = 0;
 }
 
 std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessTx)
@@ -192,7 +187,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     pblock->nTime = GetAdjustedTime();
     bool fMTP = (pblock->nTime >= params.nMTPSwitchTime);
-    bool fShorterBlockDistance = nHeight >= params.stage3StartBlock;
+    bool fShorterBlockDistance = (pblock->nTime >= params.stage3StartTime);
     const int64_t nMedianTimePast = pindexPrev->GetMedianTimePast();
 
     pblock->nVersion = ComputeBlockVersion(pindexPrev, chainparams.GetConsensus()) | (fMTP ? 0x1000 : 0);
@@ -462,18 +457,6 @@ bool BlockAssembler::TestForBlock(CTxMemPool::txiter iter)
             return false;
     }
 
-    // Check transaction against spark limits
-    if(tx.IsSparkSpend()) {
-        CAmount spendAmount = spark::GetSpendTransparentAmount(tx);
-        const auto &params = chainparams.GetConsensus();
-
-        if (spendAmount > params.nMaxValueSparkSpendPerTransaction)
-            return false;
-
-        if (spendAmount + nSparkSpendAmount > params.nMaxValueSparkSpendPerBlock)
-            return false;
-    }
-
     return true;
 }
 
@@ -503,17 +486,6 @@ void BlockAssembler::AddToBlock(CTxMemPool::txiter iter)
             return;
 
         if ((nLelantusSpendInputs += spendNumber) > params.nMaxLelantusInputPerBlock)
-            return;
-    }
-
-    if(tx.IsSparkSpend()) {
-        CAmount spendAmount = spark::GetSpendTransparentAmount(tx);
-        const auto &params = chainparams.GetConsensus();
-
-        if (spendAmount > params.nMaxValueSparkSpendPerTransaction)
-            return;
-
-        if ((nSparkSpendAmount += spendAmount) > params.nMaxValueSparkSpendPerBlock)
             return;
     }
 
@@ -835,31 +807,19 @@ void BlockAssembler::FillFoundersReward(CMutableTransaction &coinbaseTx, bool fM
     if (fShorterBlockDistance)
         coin /= 2;
 
-    if ((nHeight >= params.nSubsidyHalvingFirst && nHeight < params.nSubsidyHalvingSecond) || nHeight >= params.stage4StartBlock) {
+    if (nHeight >= params.nSubsidyHalvingFirst && nHeight < params.nSubsidyHalvingSecond) {
         if (fShorterBlockDistance) {
-            bool fStage3 = nHeight < params.nSubsidyHalvingSecond;
-            bool fStage4 = nHeight >= params.stage4StartBlock;
-            CAmount devPayoutValue = 0, communityPayoutValue = 0;
+            // Stage 3
             CScript devPayoutScript = GetScriptForDestination(CBitcoinAddress(params.stage3DevelopmentFundAddress).Get());
+            CAmount devPayoutValue = (GetBlockSubsidyWithMTPFlag(nHeight, params, fMTP, true) * params.stage3DevelopmentFundShare) / 100;
             CScript communityPayoutScript = GetScriptForDestination(CBitcoinAddress(params.stage3CommunityFundAddress).Get());
+            CAmount communityPayoutValue = (GetBlockSubsidyWithMTPFlag(nHeight, params, fMTP, true) * params.stage3CommunityFundShare) / 100;
 
-            // There is no dev/community payout for testnet for some time
-            if (fStage3 || fStage4) {
-                int devShare = fStage3 ? params.stage3DevelopmentFundShare : params.stage4DevelopmentFundShare;
-                int communityShare = fStage3 ? params.stage3CommunityFundShare : params.stage4CommunityFundShare;
-                devPayoutValue = (GetBlockSubsidyWithMTPFlag(nHeight, params, fMTP, true) * devShare) / 100;
-                communityPayoutValue = (GetBlockSubsidyWithMTPFlag(nHeight, params, fMTP, true) * communityShare) / 100;
-            }
+            coinbaseTx.vout[0].nValue -= devPayoutValue;
+            coinbaseTx.vout.push_back(CTxOut(devPayoutValue, devPayoutScript));
 
-            if (devPayoutValue != 0) {
-                coinbaseTx.vout[0].nValue -= devPayoutValue;
-                coinbaseTx.vout.push_back(CTxOut(devPayoutValue, devPayoutScript));
-            }
-
-            if (communityPayoutValue != 0) {
-                coinbaseTx.vout[0].nValue -= communityPayoutValue;
-                coinbaseTx.vout.push_back(CTxOut(communityPayoutValue, communityPayoutScript));
-            }
+            coinbaseTx.vout[0].nValue -= communityPayoutValue;
+            coinbaseTx.vout.push_back(CTxOut(communityPayoutValue, communityPayoutScript));
         }
         else {
             // Stage 2
@@ -954,7 +914,7 @@ void BlockAssembler::FillBlackListForBlockTemplate() {
 
         // transactions depending (directly or not) on sigma spends in the mempool cannot be included in the
         // same block with spend transaction
-        if (tx.IsSigmaSpend() || tx.IsLelantusJoinSplit() || tx.IsSparkSpend()) {
+        if (tx.IsSigmaSpend() || tx.IsLelantusJoinSplit()) {
             mempool.CalculateDescendants(mi, txBlackList);
             // remove privacy transaction itself
             txBlackList.erase(mi);
@@ -1015,49 +975,34 @@ void BlockAssembler::FillBlackListForBlockTemplate() {
 
     // Now if we have limit on lelantus transparent outputs scan mempool and drop all the transactions exceeding the limit
     if (sporkMap.count(CSporkAction::featureLelantusTransparentLimit) > 0) {
-        BlacklistTxsExceedingLimit(sporkMap[CSporkAction::featureLelantusTransparentLimit].second,
-            [](const CTransaction &tx)->bool { return tx.IsLelantusJoinSplit(); },
-            [](const CTransaction &tx)->CAmount { return lelantus::GetSpendTransparentAmount(tx); });
+        CAmount limit = sporkMap[CSporkAction::featureLelantusTransparentLimit].second;
+
+        std::vector<CTxMemPool::txiter> joinSplitTxs;
+        for (CTxMemPool::txiter mi = mempool.mapTx.begin(); mi != mempool.mapTx.end(); ++mi) {
+            if (txBlackList.count(mi) == 0 && mi->GetTx().IsLelantusJoinSplit())
+                joinSplitTxs.push_back(mi);
+        }
+
+        // sort join splits in order of their transparent outputs so large txs won't block smaller ones
+        // from getting into the mempool
+        std::sort(joinSplitTxs.begin(), joinSplitTxs.end(), 
+            [](CTxMemPool::txiter a, CTxMemPool::txiter b) -> bool {
+                return lelantus::GetSpendTransparentAmount(a->GetTx()) < lelantus::GetSpendTransparentAmount(b->GetTx());
+            });
+
+        CAmount transparentAmount = 0;
+        std::vector<CTxMemPool::txiter>::const_iterator it;
+        for (it = joinSplitTxs.cbegin(); it != joinSplitTxs.cend(); ++it) {
+            CAmount output = lelantus::GetSpendTransparentAmount((*it)->GetTx());
+            if (transparentAmount + output > limit)
+                break;
+            transparentAmount += output;
+        }
+
+        // found all the joinsplit transaction fitting in the limit, blacklist the rest
+        while (it != joinSplitTxs.cend())
+            mempool.CalculateDescendants(*it++, txBlackList);
     }
-
-    // Same for spark spends
-    if (sporkMap.count(CSporkAction::featureSparkTransparentLimit) > 0) {
-        BlacklistTxsExceedingLimit(sporkMap[CSporkAction::featureSparkTransparentLimit].second,
-            [](const CTransaction &tx)->bool { return tx.IsSparkSpend(); },
-            [](const CTransaction &tx)->CAmount { return spark::GetSpendTransparentAmount(tx); });
-    }
-}
-
-void BlockAssembler::BlacklistTxsExceedingLimit(CAmount limit,
-                                    std::function<bool (const CTransaction &)> txTypeFilter,
-                                    std::function<CAmount (const CTransaction &)> txAmount) {
-
-    std::vector<CTxMemPool::txiter> txList;
-    for (CTxMemPool::txiter mi = mempool.mapTx.begin(); mi != mempool.mapTx.end(); ++mi) {
-        if (txBlackList.count(mi) == 0 && txTypeFilter(mi->GetTx()))
-            txList.push_back(mi);
-    }
-
-    // sort transactions in order of their transparent outputs so large txs won't block smaller ones
-    // from getting into the mempool
-    std::sort(txList.begin(), txList.end(), 
-        [=](CTxMemPool::txiter a, CTxMemPool::txiter b) -> bool {
-            return txAmount(a->GetTx()) < txAmount(b->GetTx());
-        });
-
-    CAmount transparentAmount = 0;
-    std::vector<CTxMemPool::txiter>::const_iterator it;
-    for (it = txList.cbegin(); it != txList.cend(); ++it) {
-        CAmount output = txAmount((*it)->GetTx());
-        if (transparentAmount + output > limit)
-            break;
-        transparentAmount += output;
-    }
-
-    // found all the private transaction fitting in the limit, blacklist the rest
-    while (it != txList.cend())
-        mempool.CalculateDescendants(*it++, txBlackList);
-
 }
 
 //////////////////////////////////////////////////////////////////////////////

@@ -101,9 +101,9 @@ public:
         qDebug() << "TransactionTablePriv::updateWallet: " + QString::fromStdString(hash.ToString()) + " " + QString::number(status);
 
         // Find bounds of this transaction in model
-        QList<TransactionRecord>::iterator lower = std::lower_bound(
+        QList<TransactionRecord>::iterator lower = qLowerBound(
             cachedWallet.begin(), cachedWallet.end(), hash, TxLessThan());
-        QList<TransactionRecord>::iterator upper = std::upper_bound(
+        QList<TransactionRecord>::iterator upper = qUpperBound(
             cachedWallet.begin(), cachedWallet.end(), hash, TxLessThan());
         int lowerIndex = (lower - cachedWallet.begin());
         int upperIndex = (upper - cachedWallet.begin());
@@ -146,7 +146,7 @@ public:
                 {
                     parent->beginInsertRows(QModelIndex(), lowerIndex, lowerIndex+toInsert.size()-1);
                     int insert_idx = lowerIndex;
-                    for (const TransactionRecord &rec : toInsert)
+                    Q_FOREACH(const TransactionRecord &rec, toInsert)
                     {
                         cachedWallet.insert(insert_idx, rec);
                         insert_idx += 1;
@@ -436,16 +436,6 @@ QString TransactionTableModel::formatTxType(const TransactionRecord *wtx) const
             return tr("Sent to RAP address");
     case TransactionRecord::RecvWithPcode:
             return tr("Received with RAP address");
-    case TransactionRecord::MintSparkToSelf:
-            return tr("Mint spark to yourself");
-    case TransactionRecord::SpendSparkToSelf:
-            return tr("Spend spark to yourself");
-    case TransactionRecord::MintSparkTo:
-            return tr("Mint spark to");
-    case TransactionRecord::SpendSparkTo:
-            return tr("Spend spark to");
-    case TransactionRecord::RecvSpark:
-        return tr("Received Spark");
     default:
         return QString();
     }
@@ -468,12 +458,6 @@ QVariant TransactionTableModel::txAddressDecoration(const TransactionRecord *wtx
     case TransactionRecord::SendToPcode:
     case TransactionRecord::RecvWithPcode:
         return QIcon(":/icons/paymentcode");
-    case TransactionRecord::MintSparkToSelf:
-    case TransactionRecord::SpendSparkToSelf:
-    case TransactionRecord::MintSparkTo:
-    case TransactionRecord::SpendSparkTo:
-    case TransactionRecord::RecvSpark:
-        return QIcon(":/icons/spark");
     default:
         return QIcon(":/icons/tx_inout");
     }
@@ -497,18 +481,13 @@ QString TransactionTableModel::formatTxToAddress(const TransactionRecord *wtx, b
     case TransactionRecord::SpendToAddress:
     case TransactionRecord::SendToPcode:
     case TransactionRecord::Generated:
-    case TransactionRecord::RecvSpark:
-    case TransactionRecord::MintSparkTo:
-    case TransactionRecord::SpendSparkTo:
         return lookupAddress(wtx, tooltip) + watchAddress;
     case TransactionRecord::SendToOther:
         return QString::fromStdString(wtx->address) + watchAddress;
     case TransactionRecord::Anonymize:
-    case TransactionRecord::MintSparkToSelf:
         return tr("Anonymized");
     case TransactionRecord::SendToSelf:
     case TransactionRecord::SpendToSelf:
-    case TransactionRecord::SpendSparkToSelf:
     default:
         return tr("(n/a)") + watchAddress;
     }

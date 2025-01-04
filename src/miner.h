@@ -174,10 +174,6 @@ private:
     CAmount nLelantusSpendAmount;
     size_t nLelantusSpendInputs;
 
-    // lelantus spend limits
-    CAmount nSparkSpendAmount;
-    size_t nSparkSpendInputs;
-
     // transactions we cannot include in this block
     CTxMemPool::setEntries txBlackList;
 
@@ -232,11 +228,6 @@ private:
 
     /** Fill txBlackList set */
     void FillBlackListForBlockTemplate();
-
-    /** Ensure spark/lelantus txs don't exceed specific limit */
-    void BlacklistTxsExceedingLimit(CAmount limit,
-                                    std::function<bool (const CTransaction &)> txTypeFilter,
-                                    std::function<CAmount (const CTransaction &)> txAmount);
 };
 
 /** Modify the extranonce in a block */

@@ -48,9 +48,6 @@ public:
     QWidget *setupTabChain(QWidget *prev);
 
     void setFocus();
-    void setWarning(bool fAnonymousMode);
-    void setfAnonymousMode(bool fAnonymousMode);
-    static QString generateWarningText(const QString& address, const bool fAnonymousMode);
 
 public Q_SLOTS:
     void clear();
@@ -63,7 +60,6 @@ Q_SIGNALS:
 private Q_SLOTS:
     void deleteClicked();
     void on_payTo_textChanged(const QString &address);
-    void on_MemoTextChanged(const QString &text);
     void on_addressBookButton_clicked();
     void on_pasteButton_clicked();
     void updateDisplayUnit();
@@ -74,11 +70,8 @@ private:
     WalletModel *model;
     const PlatformStyle *platformStyle;
     bool isPcodeEntry;
-    bool fAnonymousMode = false;
+
     bool updateLabel(const QString &address);
-    void resizeEvent(QResizeEvent* event) override;
-    void adjustTextSize(int width, int height);
-    
 };
 
 #endif // BITCOIN_QT_SENDCOINSENTRY_H

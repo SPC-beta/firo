@@ -6,10 +6,8 @@
 #include "base58.h"
 #include "definition.h"
 #include "txmempool.h"
-#ifdef ENABLE_WALLET
 #include "wallet/wallet.h"
 #include "wallet/walletdb.h"
-#endif // ENABLE_WALLET
 #include "crypto/sha256.h"
 #include "sigma/coinspend.h"
 #include "sigma/coin.h"
@@ -457,13 +455,8 @@ bool CheckSigmaTransaction(
     if (allowSigma) {
         for (const CTxOut &txout : tx.vout) {
             if (!txout.scriptPubKey.empty() && txout.scriptPubKey.IsSigmaMint()) {
-                try {
-                    if (!CheckSigmaMintTransaction(txout, state, hashTx, fStatefulSigmaCheck, sigmaTxInfo))
-                        return false;
-                }
-                catch (const std::exception &x) {
-                    return state.Error(x.what());
-                }
+                if (!CheckSigmaMintTransaction(txout, state, hashTx, fStatefulSigmaCheck, sigmaTxInfo))
+                    return false;
             }
         }
     }
@@ -513,15 +506,10 @@ bool CheckSigmaTransaction(
         // Check vOut
         // Only one loop, we checked on the format before entering this case
         if (!isVerifyDB) {
-            try {
-                if (!CheckSigmaSpendTransaction(
-                    tx, denominations, state, hashTx, isVerifyDB, nHeight, realHeight,
-                    isCheckWallet, fStatefulSigmaCheck, sigmaTxInfo)) {
-                        return false;
-                }
-            }
-            catch (const std::exception &x) {
-                return state.Error(x.what());
+            if (!CheckSigmaSpendTransaction(
+                tx, denominations, state, hashTx, isVerifyDB, nHeight, realHeight,
+                isCheckWallet, fStatefulSigmaCheck, sigmaTxInfo)) {
+                    return false;
             }
         }
     }
@@ -643,17 +631,15 @@ bool ConnectBlockSigma(
                     )) {
                 return false;
             }
-        }
 
-        if (!fJustCheck) {
-            BOOST_FOREACH(auto& serial, pblock->sigmaTxInfo->spentSerials) {
+            if (!fJustCheck) {
                 pindexNew->sigmaSpentSerials.insert(serial);
                 sigmaState.AddSpend(serial.first, serial.second.denomination, serial.second.coinGroupId);
             }
         }
-        else {
+
+        if (fJustCheck)
             return true;
-        }
 
         sigmaState.AddMintsToStateAndBlockIndex(pindexNew, pblock);
     }
@@ -677,7 +663,7 @@ bool GetOutPointFromBlock(COutPoint& outPoint, const GroupElement &pubCoinValue,
                                                       txout.scriptPubKey.end());
                 try {
                     txPubCoinValue.deserialize(&coin_serialised[0]);
-                } catch (const std::exception &) {
+                } catch (...) {
                     return false;
                 }
                 if(pubCoinValue==txPubCoinValue){

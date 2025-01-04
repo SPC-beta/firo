@@ -62,7 +62,7 @@ public:
 #if QT_VERSION >= 0x040700
             cachedNodeStats.reserve(vstats.size());
 #endif
-            for (const CNodeStats& nodestats : vstats)
+            Q_FOREACH (const CNodeStats& nodestats, vstats)
             {
                 CNodeCombinedStats stats;
                 stats.nodeStateStats.nMisbehavior = 0;
@@ -86,12 +86,12 @@ public:
 
         if (sortColumn >= 0)
             // sort cacheNodeStats (use stable sort to prevent rows jumping around unnecessarily)
-            std::stable_sort(cachedNodeStats.begin(), cachedNodeStats.end(), NodeLessThan(sortColumn, sortOrder));
+            qStableSort(cachedNodeStats.begin(), cachedNodeStats.end(), NodeLessThan(sortColumn, sortOrder));
 
         // build index map
         mapNodeRows.clear();
         int row = 0;
-        for (const CNodeCombinedStats& stats : cachedNodeStats)
+        Q_FOREACH (const CNodeCombinedStats& stats, cachedNodeStats)
             mapNodeRows.insert(std::pair<NodeId, int>(stats.nodeStats.nodeid, row++));
     }
 
@@ -197,7 +197,7 @@ QVariant PeerTableModel::headerData(int section, Qt::Orientation orientation, in
 Qt::ItemFlags PeerTableModel::flags(const QModelIndex &index) const
 {
     if(!index.isValid())
-        return Qt::ItemFlags();
+        return 0;
 
     Qt::ItemFlags retval = Qt::ItemIsSelectable | Qt::ItemIsEnabled;
     return retval;

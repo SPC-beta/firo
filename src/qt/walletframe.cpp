@@ -118,6 +118,15 @@ void WalletFrame::gotoOverviewPage()
         i.value()->gotoOverviewPage();
 }
 
+#ifdef ENABLE_ELYSIUM
+void WalletFrame::gotoElyAssetsPage()
+{
+    QMap<QString, WalletView*>::const_iterator i;
+    for (i = mapWalletViews.constBegin(); i != mapWalletViews.constEnd(); ++i)
+        i.value()->gotoElyAssetsPage();
+}
+#endif
+
 void WalletFrame::gotoHistoryPage()
 {
     QMap<QString, WalletView*>::const_iterator i;
@@ -125,12 +134,30 @@ void WalletFrame::gotoHistoryPage()
         i.value()->gotoHistoryPage();
 }
 
+#ifdef ENABLE_ELYSIUM
+void WalletFrame::gotoElysiumHistoryTab()
+{
+    QMap<QString, WalletView*>::const_iterator i;
+    for (i = mapWalletViews.constBegin(); i != mapWalletViews.constEnd(); ++i)
+        i.value()->gotoElysiumHistoryTab();
+}
+#endif
+
 void WalletFrame::gotoBitcoinHistoryTab()
 {
     QMap<QString, WalletView*>::const_iterator i;
     for (i = mapWalletViews.constBegin(); i != mapWalletViews.constEnd(); ++i)
         i.value()->gotoBitcoinHistoryTab();
 }
+
+#ifdef ENABLE_ELYSIUM
+void WalletFrame::gotoToolboxPage()
+{
+    QMap<QString, WalletView*>::const_iterator i;
+    for (i = mapWalletViews.constBegin(); i != mapWalletViews.constEnd(); ++i)
+        i.value()->gotoToolboxPage();
+}
+#endif
 
 void WalletFrame::gotoMasternodePage()
 {
@@ -144,6 +171,13 @@ void WalletFrame::gotoReceiveCoinsPage()
     QMap<QString, WalletView*>::const_iterator i;
     for (i = mapWalletViews.constBegin(); i != mapWalletViews.constEnd(); ++i)
         i.value()->gotoReceiveCoinsPage();
+}
+
+void WalletFrame::gotoCreatePcodePage()
+{
+    QMap<QString, WalletView*>::const_iterator i;
+    for (i = mapWalletViews.constBegin(); i != mapWalletViews.constEnd(); ++i)
+        i.value()->gotoCreatePcodePage();
 }
 
 void WalletFrame::gotoSendCoinsPage(QString addr)
@@ -224,11 +258,4 @@ WalletView *WalletFrame::currentWalletView()
 void WalletFrame::outOfSyncWarningClicked()
 {
     Q_EMIT requestedSyncWarningInfo();
-}
-
-void WalletFrame::updateAddressbook() {
-    WalletView *walletView = currentWalletView();
-
-    if (walletView)
-        walletView->updateAddressbook();
 }

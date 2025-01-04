@@ -43,12 +43,14 @@ QRImageWidget::QRImageWidget(QWidget *parent):
 
 QImage QRImageWidget::exportImage()
 {
-    return GUIUtil::GetImage(this);
+    if(!pixmap())
+        return QImage();
+    return pixmap()->toImage();
 }
 
 void QRImageWidget::mousePressEvent(QMouseEvent *event)
 {
-    if(event->button() == Qt::LeftButton && GUIUtil::HasPixmap(this))
+    if(event->button() == Qt::LeftButton && pixmap())
     {
         event->accept();
         QMimeData *mimeData = new QMimeData;
@@ -64,7 +66,7 @@ void QRImageWidget::mousePressEvent(QMouseEvent *event)
 
 void QRImageWidget::saveImage()
 {
-    if(!GUIUtil::HasPixmap(this))
+    if(!pixmap())
         return;
     QString fn = GUIUtil::getSaveFileName(this, tr("Save QR Code"), QString(), tr("PNG Image (*.png)"), NULL);
     if (!fn.isEmpty())
@@ -75,14 +77,14 @@ void QRImageWidget::saveImage()
 
 void QRImageWidget::copyImage()
 {
-    if(!GUIUtil::HasPixmap(this))
+    if(!pixmap())
         return;
     QApplication::clipboard()->setImage(exportImage());
 }
 
 void QRImageWidget::contextMenuEvent(QContextMenuEvent *event)
 {
-    if(!GUIUtil::HasPixmap(this))
+    if(!pixmap())
         return;
     contextMenu->exec(event->globalPos());
 }
@@ -128,7 +130,6 @@ void ReceiveRequestDialog::update()
 {
     if(!model)
         return;
-    resize(width(), 600);
     QString target = info.label;
     if(target.isEmpty())
         target = info.address;
@@ -146,14 +147,6 @@ void ReceiveRequestDialog::update()
         html += "<b>"+tr("Amount")+"</b>: " + BitcoinUnits::formatHtmlWithUnit(model->getDisplayUnit(), info.amount) + "<br>";
     if(!info.label.isEmpty())
         html += "<b>"+tr("Label")+"</b>: " + GUIUtil::HtmlEscape(info.label) + "<br>";
-    if(walletModel->validateAddress(info.address))
-    {
-        html += "<b>"+tr("Address Type")+"</b>: " + tr("transparent") + "<br>";
-    }
-    else if(walletModel->validateSparkAddress(info.address))
-    {
-        html += "<b>"+tr("Address Type")+"</b>: " + tr("spark") + "<br>";
-    }
     if(!info.message.isEmpty())
         html += "<b>"+tr("Message")+"</b>: " + GUIUtil::HtmlEscape(info.message) + "<br>";
     ui->outUri->setText(html);
@@ -195,11 +188,7 @@ void ReceiveRequestDialog::update()
             painter.setFont(font);
             QRect paddedRect = qrAddrImage.rect();
             paddedRect.setHeight(QR_IMAGE_SIZE+12);
-            if (info.address.length() > 34) {
-                painter.drawText(paddedRect, Qt::AlignBottom|Qt::AlignCenter, info.address.left(16) + "..." + info.address.right(16));
-            } else {
-                painter.drawText(paddedRect, Qt::AlignBottom|Qt::AlignCenter, info.address);
-            }
+            painter.drawText(paddedRect, Qt::AlignBottom|Qt::AlignCenter, info.address);
             painter.end();
 
             ui->lblQRCode->setPixmap(QPixmap::fromImage(qrAddrImage));

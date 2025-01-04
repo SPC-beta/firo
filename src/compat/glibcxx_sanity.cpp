@@ -47,7 +47,7 @@ bool sanity_test_range_fmt()
 {
     std::string test;
     try {
-        (void) test.at(1);
+        test.at(1);
     } catch (const std::out_of_range&) {
         return true;
     } catch (...) {

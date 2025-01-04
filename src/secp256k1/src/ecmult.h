@@ -11,7 +11,6 @@
 #include "group.h"
 #include "scalar.h"
 #include "scratch.h"
-#include "scratch_impl.h"
 
 typedef struct {
     /* For accelerating the computation of a*P + b*G: */

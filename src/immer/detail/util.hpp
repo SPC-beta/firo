@@ -11,9 +11,9 @@
 #include <immer/config.hpp>
 
 #include <cstddef>
-#include <memory>
 #include <new>
 #include <type_traits>
+#include <memory>
 
 #include <immer/detail/type_traits.hpp>
 
@@ -25,170 +25,61 @@ namespace immer {
 namespace detail {
 
 template <typename T>
-const T* as_const(T* x)
-{
-    return x;
-}
-
-template <typename T>
-const T& as_const(T& x)
-{
-    return x;
-}
-
-template <typename T>
 using aligned_storage_for =
     typename std::aligned_storage<sizeof(T), alignof(T)>::type;
 
 template <typename T>
-T& auto_const_cast(const T& x)
-{
-    return const_cast<T&>(x);
-}
+T& auto_const_cast(const T& x) { return const_cast<T&>(x); }
 template <typename T>
-T&& auto_const_cast(const T&& x)
+T&& auto_const_cast(const T&& x) { return const_cast<T&&>(std::move(x)); }
+
+template <typename Iter1, typename Iter2>
+auto uninitialized_move(Iter1 in1, Iter1 in2, Iter2 out)
 {
-    return const_cast<T&&>(std::move(x));
+    return std::uninitialized_copy(std::make_move_iterator(in1),
+                                   std::make_move_iterator(in2),
+                                   out);
 }
 
 template <class T>
-inline auto destroy_at(T* p) noexcept
-    -> std::enable_if_t<std::is_trivially_destructible<T>::value>
-{
-    p->~T();
-}
-
-template <class T>
-inline auto destroy_at(T* p) noexcept
-    -> std::enable_if_t<!std::is_trivially_destructible<T>::value>
-{
-    p->~T();
-}
-
-template <typename Iter1>
-constexpr bool can_trivially_detroy = std::is_trivially_destructible<
-    typename std::iterator_traits<Iter1>::value_type>::value;
-
-template <class Iter>
-auto destroy(Iter, Iter last) noexcept
-    -> std::enable_if_t<can_trivially_detroy<Iter>, Iter>
-{
-    return last;
-}
-template <class Iter>
-auto destroy(Iter first, Iter last) noexcept
-    -> std::enable_if_t<!can_trivially_detroy<Iter>, Iter>
+void destroy(T* first, T* last)
 {
     for (; first != last; ++first)
-        detail::destroy_at(std::addressof(*first));
-    return first;
+        first->~T();
 }
 
-template <class Iter, class Size>
-auto destroy_n(Iter first, Size n) noexcept
-    -> std::enable_if_t<can_trivially_detroy<Iter>, Iter>
+template <class T, class Size>
+void destroy_n(T* p, Size n)
 {
-    return first + n;
-}
-template <class Iter, class Size>
-auto destroy_n(Iter first, Size n) noexcept
-    -> std::enable_if_t<!can_trivially_detroy<Iter>, Iter>
-{
-    for (; n > 0; (void) ++first, --n)
-        detail::destroy_at(std::addressof(*first));
-    return first;
-}
-
-template <typename Iter1, typename Iter2>
-constexpr bool can_trivially_copy =
-    std::is_same<typename std::iterator_traits<Iter1>::value_type,
-                 typename std::iterator_traits<Iter2>::value_type>::value&&
-        std::is_trivially_copyable<
-            typename std::iterator_traits<Iter1>::value_type>::value;
-
-template <typename Iter1, typename Iter2>
-auto uninitialized_move(Iter1 first, Iter1 last, Iter2 out) noexcept
-    -> std::enable_if_t<can_trivially_copy<Iter1, Iter2>, Iter2>
-{
-    return std::copy(first, last, out);
-}
-template <typename Iter1, typename Iter2>
-auto uninitialized_move(Iter1 first, Iter1 last, Iter2 out)
-    -> std::enable_if_t<!can_trivially_copy<Iter1, Iter2>, Iter2>
-
-{
-    using value_t = typename std::iterator_traits<Iter2>::value_type;
-    auto current  = out;
-    IMMER_TRY {
-        for (; first != last; ++first, (void) ++current) {
-            ::new (const_cast<void*>(static_cast<const volatile void*>(
-                std::addressof(*current)))) value_t(std::move(*first));
-        }
-        return current;
-    }
-    IMMER_CATCH (...) {
-        detail::destroy(out, current);
-        IMMER_RETHROW;
-    }
-}
-
-template <typename SourceIter, typename Sent, typename SinkIter>
-auto uninitialized_copy(SourceIter first, Sent last, SinkIter out) noexcept
-    -> std::enable_if_t<can_trivially_copy<SourceIter, SinkIter>, SinkIter>
-{
-    return std::copy(first, last, out);
-}
-template <typename SourceIter, typename Sent, typename SinkIter>
-auto uninitialized_copy(SourceIter first, Sent last, SinkIter out)
-    -> std::enable_if_t<!can_trivially_copy<SourceIter, SinkIter>, SinkIter>
-{
-    using value_t = typename std::iterator_traits<SinkIter>::value_type;
-    auto current  = out;
-    IMMER_TRY {
-        for (; first != last; ++first, (void) ++current) {
-            ::new (const_cast<void*>(static_cast<const volatile void*>(
-                std::addressof(*current)))) value_t(*first);
-        }
-        return current;
-    }
-    IMMER_CATCH (...) {
-        detail::destroy(out, current);
-        IMMER_RETHROW;
-    }
+    auto e = p + n;
+    for (; p != e; ++p)
+        p->~T();
 }
 
 template <typename Heap, typename T, typename... Args>
-T* make(Args&&... args)
+T* make(Args&& ...args)
 {
     auto ptr = Heap::allocate(sizeof(T));
-    IMMER_TRY {
+    try {
         return new (ptr) T{std::forward<Args>(args)...};
-    }
-    IMMER_CATCH (...) {
+    } catch (...) {
         Heap::deallocate(sizeof(T), ptr);
-        IMMER_RETHROW;
+        throw;
     }
 }
 
-struct not_supported_t
-{};
-struct empty_t
-{};
+struct not_supported_t {};
+struct empty_t {};
 
 template <typename T>
 struct exact_t
 {
     T value;
-    exact_t(T v)
-        : value{v} {};
+    exact_t(T v) : value{v} {};
 };
 
 template <typename T>
-inline constexpr auto clz_(T) -> not_supported_t
-{
-    IMMER_UNREACHABLE;
-    return {};
-}
+inline constexpr auto clz_(T) -> not_supported_t { IMMER_UNREACHABLE; return {}; }
 #if defined(_MSC_VER)
 // inline auto clz_(unsigned short x) { return __lzcnt16(x); }
 // inline auto clz_(unsigned int x) { return __lzcnt(x); }
@@ -206,63 +97,46 @@ inline constexpr T log2_aux(T x, T r = 0)
 }
 
 template <typename T>
-inline constexpr auto log2(T x) -> std::
-    enable_if_t<!std::is_same<decltype(clz_(x)), not_supported_t>::value, T>
+inline constexpr auto log2(T x)
+    -> std::enable_if_t<!std::is_same<decltype(clz_(x)), not_supported_t>::value, T>
 {
     return x == 0 ? 0 : sizeof(std::size_t) * 8 - 1 - clz_(x);
 }
 
 template <typename T>
 inline constexpr auto log2(T x)
-    -> std::enable_if_t<std::is_same<decltype(clz_(x)), not_supported_t>::value,
-                        T>
+    -> std::enable_if_t<std::is_same<decltype(clz_(x)), not_supported_t>::value, T>
 {
     return log2_aux(x);
 }
 
-template <typename T>
-constexpr T ipow(T num, unsigned int pow)
-{
-    return pow == 0 ? 1 : num * ipow(num, pow - 1);
-}
-
 template <bool b, typename F>
 auto static_if(F&& f) -> std::enable_if_t<b>
-{
-    std::forward<F>(f)(empty_t{});
-}
+{ std::forward<F>(f)(empty_t{}); }
 template <bool b, typename F>
 auto static_if(F&& f) -> std::enable_if_t<!b>
 {}
 
-template <bool b, typename R = void, typename F1, typename F2>
+template <bool b, typename R=void, typename F1, typename F2>
 auto static_if(F1&& f1, F2&& f2) -> std::enable_if_t<b, R>
-{
-    return std::forward<F1>(f1)(empty_t{});
-}
-template <bool b, typename R = void, typename F1, typename F2>
+{ return std::forward<F1>(f1)(empty_t{}); }
+template <bool b, typename R=void, typename F1, typename F2>
 auto static_if(F1&& f1, F2&& f2) -> std::enable_if_t<!b, R>
-{
-    return std::forward<F2>(f2)(empty_t{});
-}
+{ return std::forward<F2>(f2)(empty_t{}); }
 
 template <typename T, T value>
 struct constantly
 {
     template <typename... Args>
-    T operator()(Args&&...) const
-    {
-        return value;
-    }
+    T operator() (Args&&...) const { return value; }
 };
 
 /*!
  * An alias to `std::distance`
  */
-template <typename Iterator,
-          typename Sentinel,
-          std::enable_if_t<detail::std_distance_supports_v<Iterator, Sentinel>,
-                           bool> = true>
+template <typename Iterator, typename Sentinel,
+          std::enable_if_t
+          <detail::std_distance_supports_v<Iterator,Sentinel>, bool> = true>
 typename std::iterator_traits<Iterator>::difference_type
 distance(Iterator first, Sentinel last)
 {
@@ -273,14 +147,12 @@ distance(Iterator first, Sentinel last)
  * Equivalent of the `std::distance` applied to the sentinel-delimited
  * forward range @f$ [first, last) @f$
  */
-template <typename Iterator,
-          typename Sentinel,
-          std::enable_if_t<
-              (!detail::std_distance_supports_v<Iterator, Sentinel>) &&detail::
-                      is_forward_iterator_v<Iterator> &&
-                  detail::compatible_sentinel_v<Iterator, Sentinel> &&
-                  (!detail::is_subtractable_v<Sentinel, Iterator>),
-              bool> = true>
+template <typename Iterator, typename Sentinel,
+          std::enable_if_t
+          <(!detail::std_distance_supports_v<Iterator,Sentinel>)
+           && detail::is_forward_iterator_v<Iterator>
+           && detail::compatible_sentinel_v<Iterator,Sentinel>
+           && (!detail::is_subtractable_v<Sentinel, Iterator>), bool> = true>
 typename std::iterator_traits<Iterator>::difference_type
 distance(Iterator first, Sentinel last)
 {
@@ -296,18 +168,57 @@ distance(Iterator first, Sentinel last)
  * Equivalent of the `std::distance` applied to the sentinel-delimited
  * random access range @f$ [first, last) @f$
  */
-template <typename Iterator,
-          typename Sentinel,
-          std::enable_if_t<
-              (!detail::std_distance_supports_v<Iterator, Sentinel>) &&detail::
-                      is_forward_iterator_v<Iterator> &&
-                  detail::compatible_sentinel_v<Iterator, Sentinel> &&
-                  detail::is_subtractable_v<Sentinel, Iterator>,
-              bool> = true>
+template <typename Iterator, typename Sentinel,
+          std::enable_if_t
+          <(!detail::std_distance_supports_v<Iterator,Sentinel>)
+           && detail::is_forward_iterator_v<Iterator>
+           && detail::compatible_sentinel_v<Iterator,Sentinel>
+           && detail::is_subtractable_v<Sentinel, Iterator>, bool> = true>
 typename std::iterator_traits<Iterator>::difference_type
 distance(Iterator first, Sentinel last)
 {
     return last - first;
+}
+
+
+
+/*!
+ * An alias to `std::uninitialized_copy`
+ */
+template <typename Iterator, typename Sentinel, typename SinkIter,
+          std::enable_if_t
+          <detail::std_uninitialized_copy_supports_v
+           <Iterator,Sentinel,SinkIter>, bool> = true>
+SinkIter uninitialized_copy(Iterator first, Sentinel last, SinkIter d_first)
+{
+    return std::uninitialized_copy(first, last, d_first);
+}
+
+/*!
+ * Equivalent of the `std::uninitialized_copy` applied to the
+ * sentinel-delimited forward range @f$ [first, last) @f$
+ */
+template <typename SourceIter, typename Sent, typename SinkIter,
+          std::enable_if_t
+          <(!detail::std_uninitialized_copy_supports_v<SourceIter, Sent, SinkIter>)
+           && detail::compatible_sentinel_v<SourceIter,Sent>
+           && detail::is_forward_iterator_v<SinkIter>, bool> = true>
+SinkIter uninitialized_copy(SourceIter first, Sent last, SinkIter d_first)
+{
+    auto current = d_first;
+    try {
+        while (first != last) {
+            *current++ = *first;
+            ++first;
+        }
+    } catch (...) {
+        using Value = typename std::iterator_traits<SinkIter>::value_type;
+        for (;d_first != current; ++d_first){
+            d_first->~Value();
+        }
+        throw;
+    }
+    return current;
 }
 
 } // namespace detail

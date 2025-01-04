@@ -351,7 +351,7 @@ QComboBox::drop-down {
 }
 
 QComboBox::indicator {
-    background-color: transparent;
+    background-color: #f4f4f4;
     selection-background-color: #3d3939;
     color: #110202;
     selection-color: #FFFFFF;
@@ -373,7 +373,6 @@ QComboBox QAbstractItemView::item {
 QComboBox::item {
     color: #110202;
     font: 12pt 'Source Sans Pro';
-    max-height: 25px;
 }
 
 QComboBox::item:alternate {
@@ -820,10 +819,7 @@ QTableView::item:selected {
     color: #FFFFFF;
     font: 12pt 'Source Sans Pro';
 }
-/* QTreeView */
-QTreeView::item {
-    color: #000000;
-}
+
 /* QTableWidget */
 
 QTableWidget {
@@ -1250,10 +1246,33 @@ QDialog#LelantusDialog QRadioButton#radioCustomFee {
     margin-top: 7px;
 }
 
+/* LookupAddressDialog */
+
+QWidget#LookupAddressDialog QLabel#addressInfo,
+QWidget#LookupAddressDialog QLabel#balanceInfo {
+    font-weight: bold;
+}
+
+/* LookupSPDialog */
+
+QWidget#LookupSPDialog QLabel#spInfo,
+QWidget#LookupSPDialog QLabel#tokenInfo,
+QWidget#LookupSPDialog QLabel#crowdInfo {
+    font-weight: bold;
+}
+
 /* ManualMintDialog */
 
 QDialog#ManualMintDialog QLabel#availableAmount,
 QDialog#ManualMintDialog QLabel#totalAmount {
+    font-weight: bold;
+}
+
+/* MetaDExCancelDialog */
+
+QWidget#MetaDExCancelDialog QLabel#label_3,
+QWidget#MetaDExCancelDialog QLabel#label_2,
+QWidget#MetaDExCancelDialog QLabel#label {
     font-weight: bold;
 }
 

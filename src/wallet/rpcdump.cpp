@@ -652,7 +652,7 @@ UniValue dumpprivkey_firo(const JSONRPCRequest& request)
             "WARNING! Your one time authorization code is: " + AuthorizationHelper::inst().generateAuthorizationCode(__FUNCTION__ + request.params[0].get_str()) + "\n"
             "This command exports your wallet private key. Anyone with this key has complete control over your funds. \n"
             "If someone asked you to type in this command, chances are they want to steal your coins. \n"
-            "Firo team members will never ask for this command's output and it is not needed for masternode setup or diagnosis!\n"
+            "Firo team members will never ask for this command's output and it is not needed for Znode setup or diagnosis!\n"
             "\n"
             " Please seek help on one of our public channels. \n"
             " Telegram: https://t.me/firoproject \n"
@@ -804,19 +804,6 @@ UniValue dumpwallet(const JSONRPCRequest& request)
         }
     }
 
-    if (pwallet->sparkWallet) {
-        file << "\n";
-        CKey key;
-        uint32_t nCount;
-        {
-            LOCK(pwalletMain->cs_wallet);
-            nCount = GetArg("-sparkncount", 1);
-            pwalletMain->GetKeyFromKeypath(BIP44_SPARK_INDEX, nCount, key);
-        }
-
-        file << strprintf("# Spark key secret %s\n", CBitcoinSecret(key).ToString());
-    }
-
     file << "\n";
     file << "# End of dump\n";
     file.close();
@@ -849,7 +836,7 @@ UniValue dumpwallet_firo(const JSONRPCRequest& request)
             "WARNING! Your one time authorization code is: " + AuthorizationHelper::inst().generateAuthorizationCode(__FUNCTION__ + request.params[0].get_str()) + "\n"
             "This command exports all your private keys. Anyone with these keys has complete control over your funds. \n"
             "If someone asked you to type in this command, chances are they want to steal your coins. \n"
-            "Firo team members will never ask for this command's output and it is not needed for masternode setup or diagnosis!\n"
+            "Firo team members will never ask for this command's output and it is not needed for Znode setup or diagnosis!\n"
             "\n"
             " Please seek help on one of our public channels. \n"
             " Telegram: https://t.me/firoproject \n"

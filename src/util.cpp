@@ -130,6 +130,9 @@ bool fSkipMnpayoutCheck = false;
 std::atomic<bool> fReopenDebugLog(false);
 CTranslationInterface translationInterface;
 
+/** Flag to indicate, whether the Elysium log file should be reopened. */
+std::atomic<bool> fReopenElysiumLog(false);
+
 /** Init OpenSSL library multithreading support */
 static CCriticalSection** ppmutexOpenSSL;
 void locking_callback(int mode, int i, const char* file, int line) NO_THREAD_SAFETY_ANALYSIS
@@ -612,7 +615,7 @@ void ClearDatadirCache()
 boost::filesystem::path GetConfigFile(const std::string& confPath)
 {
     boost::filesystem::path pathConfigFile(confPath);
-    if (!pathConfigFile.is_absolute()) {
+    if (!pathConfigFile.is_complete()) {
         boost::filesystem::path dataDir = GetDataDir(false);
 
         // upgrade heuristics: if dataDir ends with either "zcoin" or ".zcoin" and confPath is set
@@ -694,7 +697,7 @@ bool RenameDirectoriesFromZcoinToFiro()
 boost::filesystem::path GetPidFile()
 {
     boost::filesystem::path pathPidFile(GetArg("-pid", BITCOIN_PID_FILENAME));
-    if (!pathPidFile.is_absolute()) pathPidFile = GetDataDir() / pathPidFile;
+    if (!pathPidFile.is_complete()) pathPidFile = GetDataDir() / pathPidFile;
     return pathPidFile;
 }
 
