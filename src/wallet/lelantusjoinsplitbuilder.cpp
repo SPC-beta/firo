@@ -59,6 +59,10 @@ CWalletTx LelantusJoinSplitBuilder::Build(
     for (size_t i = 0; i < recipients.size(); i++) {
         auto& recipient = recipients[i];
 
+        if (recipient.scriptPubKey.IsPayToExchangeAddress()) {
+            throw std::runtime_error("Exchange addresses cannot receive private funds. Please transfer your funds to a transparent address first before sending to an Exchange address");
+        }
+
         if (!MoneyRange(recipient.nAmount)) {
             throw std::runtime_error(boost::str(boost::format(_("Recipient has invalid amount")) % i));
         }
@@ -317,7 +321,7 @@ CWalletTx LelantusJoinSplitBuilder::Build(
         result.SetTx(MakeTransactionRef(tx));
 
         if (GetTransactionWeight(tx) >= MAX_NEW_TX_WEIGHT) {
-            throw std::runtime_error(_("Transaction too large"));
+            throw std::runtime_error(_("Transaction is too large (size limit: 100Kb). Select less inputs or consolidate your UTXOs"));
         }
 
         // check fee

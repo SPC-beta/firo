@@ -17,6 +17,8 @@
 #include <QMenu>
 #include <QPoint>
 #include <QSystemTrayIcon>
+#include <QPushButton>
+#include <QWidget>
 
 class ClientModel;
 class NetworkStyle;
@@ -92,18 +94,12 @@ private:
     QLabel *labelWalletHDStatusIcon;
     GUIUtil::ClickableLabel *connectionsControl;
     GUIUtil::ClickableLabel *labelBlocksIcon;
-    QLabel *labelElysiumPendingIcon;
-    QLabel *labelElysiumPendingText;
     QLabel *progressBarLabel;
     GUIUtil::ClickableProgressBar *progressBar;
     QProgressDialog *progressDialog;
 
     QMenuBar *appMenuBar;
     QAction *overviewAction;
-#ifdef ENABLE_ELYSIUM
-    QAction *elyAssetsAction;
-    QAction *toolboxAction;
-#endif
     QAction *historyAction;
     QAction *quitAction;
     QAction *sendCoinsAction;
@@ -126,9 +122,9 @@ private:
     QAction *showHelpMessageAction;
     QAction *lelantusAction;
     QAction *masternodeAction;
-    QAction *createPcodeAction;
     QAction *logoAction;
-
+    QToolBar *toolbar;
+    QLabel *logoLabel;
     QSystemTrayIcon *trayIcon;
     QMenu *trayIconMenu;
     Notificator *notificator;
@@ -148,6 +144,7 @@ private:
     void createMenuBar();
     /** Create the toolbars */
     void createToolBars();
+    void resizeEvent(QResizeEvent*);
     /** Create system tray icon and notification */
     void createTrayIcon(const NetworkStyle *networkStyle);
     /** Create system tray menu (or setup the dock menu) */
@@ -200,8 +197,6 @@ public Q_SLOTS:
     */
     void setEncryptionStatus(int status);
 
-    /** Set the Elysium pending transactions label **/
-    void setElysiumPendingStatus(bool pending);
     /** Set the hd-enabled status as shown in the UI.
      @param[in] status            current hd enabled status
      @see WalletModel::EncryptionStatus
@@ -218,14 +213,6 @@ public Q_SLOTS:
 #ifdef ENABLE_WALLET
     /** Switch to overview (home) page */
     void gotoOverviewPage();
-#ifdef ENABLE_ELYSIUM
-    /** Switch to ElyAssets page */
-    void gotoElyAssetsPage();
-    /** Switch to utility page */
-    void gotoToolboxPage();
-    /** Switch directly to Elysium history tab */
-    void gotoElysiumHistoryTab();
-#endif
     /** Switch to history (transactions) page */
     void gotoHistoryPage();
     /** Switch directly to Firo history tab */
@@ -234,8 +221,6 @@ public Q_SLOTS:
     void gotoMasternodePage();
     /** Switch to receive coins page */
     void gotoReceiveCoinsPage();
-    /** Switch to create payment code page */
-    void gotoCreatePcodePage();
     /** Switch to send coins page */
     void gotoSendCoinsPage(QString addr = "");
     /** Switch to lelantus page */
@@ -291,8 +276,6 @@ public Q_SLOTS:
     /** Update Lelantus page visibility */
     void updateLelantusPage();
 
-    /** Update RAP Addresses page visibility */
-    void setRapAddressesVisible(bool);
 };
 
 class UnitDisplayStatusBarControl : public QLabel

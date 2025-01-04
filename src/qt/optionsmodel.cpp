@@ -24,7 +24,7 @@
 #include "wallet/walletdb.h"
 #endif
 
-#include <QNetworkProxy>
+#include <QDebug>
 #include <QSettings>
 #include <QStringList>
 
@@ -80,10 +80,6 @@ void OptionsModel::Init(bool resetSettings)
     if (!settings.contains("fCoinControlFeatures"))
         settings.setValue("fCoinControlFeatures", false);
     fCoinControlFeatures = settings.value("fCoinControlFeatures", false).toBool();
-
-    if (!settings.contains("fenableRapAddresses"))
-        settings.setValue("fenableRapAddresses", false);
-    fenableRapAddresses = settings.value("fenableRapAddresses", false).toBool();
 
     if (!settings.contains("fAutoAnonymize"))
         settings.setValue("fAutoAnonymize", false);
@@ -240,12 +236,12 @@ QVariant OptionsModel::data(const QModelIndex & index, int role) const
             return settings.value("fUseProxy", false);
         case ProxyIP: {
             // contains IP at index 0 and port at index 1
-            QStringList strlIpPort = settings.value("addrProxy").toString().split(":", QString::SkipEmptyParts);
+            QStringList strlIpPort = settings.value("addrProxy").toString().split(":", Qt::SkipEmptyParts);
             return strlIpPort.at(0);
         }
         case ProxyPort: {
             // contains IP at index 0 and port at index 1
-            QStringList strlIpPort = settings.value("addrProxy").toString().split(":", QString::SkipEmptyParts);
+            QStringList strlIpPort = settings.value("addrProxy").toString().split(":", Qt::SkipEmptyParts);
             return strlIpPort.at(1);
         }
 
@@ -257,12 +253,12 @@ QVariant OptionsModel::data(const QModelIndex & index, int role) const
             return settings.value("fUseSeparateProxyTor", false);
         case ProxyIPTor: {
             // contains IP at index 0 and port at index 1
-            QStringList strlIpPort = settings.value("addrSeparateProxyTor").toString().split(":", QString::SkipEmptyParts);
+            QStringList strlIpPort = settings.value("addrSeparateProxyTor").toString().split(":", Qt::SkipEmptyParts);
             return strlIpPort.at(0);
         }
         case ProxyPortTor: {
             // contains IP at index 0 and port at index 1
-            QStringList strlIpPort = settings.value("addrSeparateProxyTor").toString().split(":", QString::SkipEmptyParts);
+            QStringList strlIpPort = settings.value("addrSeparateProxyTor").toString().split(":", Qt::SkipEmptyParts);
             return strlIpPort.at(1);
         }
 
@@ -281,8 +277,6 @@ QVariant OptionsModel::data(const QModelIndex & index, int role) const
             return settings.value("language");
         case CoinControlFeatures:
             return fCoinControlFeatures;
-        case enableRapAddresses:
-            return fenableRapAddresses;
         case AutoAnonymize:
             return fAutoAnonymize;
         case LelantusPage:
@@ -339,7 +333,7 @@ bool OptionsModel::setData(const QModelIndex & index, const QVariant & value, in
             break;
         case ProxyIP: {
             // contains current IP at index 0 and current port at index 1
-            QStringList strlIpPort = settings.value("addrProxy").toString().split(":", QString::SkipEmptyParts);
+            QStringList strlIpPort = settings.value("addrProxy").toString().split(":", Qt::SkipEmptyParts);
             // if that key doesn't exist or has a changed IP
             if (!settings.contains("addrProxy") || strlIpPort.at(0) != value.toString()) {
                 // construct new value from new IP and current port
@@ -351,7 +345,7 @@ bool OptionsModel::setData(const QModelIndex & index, const QVariant & value, in
         break;
         case ProxyPort: {
             // contains current IP at index 0 and current port at index 1
-            QStringList strlIpPort = settings.value("addrProxy").toString().split(":", QString::SkipEmptyParts);
+            QStringList strlIpPort = settings.value("addrProxy").toString().split(":", Qt::SkipEmptyParts);
             // if that key doesn't exist or has a changed port
             if (!settings.contains("addrProxy") || strlIpPort.at(1) != value.toString()) {
                 // construct new value from current IP and new port
@@ -371,7 +365,7 @@ bool OptionsModel::setData(const QModelIndex & index, const QVariant & value, in
             break;
         case ProxyIPTor: {
             // contains current IP at index 0 and current port at index 1
-            QStringList strlIpPort = settings.value("addrSeparateProxyTor").toString().split(":", QString::SkipEmptyParts);
+            QStringList strlIpPort = settings.value("addrSeparateProxyTor").toString().split(":", Qt::SkipEmptyParts);
             // if that key doesn't exist or has a changed IP
             if (!settings.contains("addrSeparateProxyTor") || strlIpPort.at(0) != value.toString()) {
                 // construct new value from new IP and current port
@@ -383,7 +377,7 @@ bool OptionsModel::setData(const QModelIndex & index, const QVariant & value, in
         break;
         case ProxyPortTor: {
             // contains current IP at index 0 and current port at index 1
-            QStringList strlIpPort = settings.value("addrSeparateProxyTor").toString().split(":", QString::SkipEmptyParts);
+            QStringList strlIpPort = settings.value("addrSeparateProxyTor").toString().split(":", Qt::SkipEmptyParts);
             // if that key doesn't exist or has a changed port
             if (!settings.contains("addrSeparateProxyTor") || strlIpPort.at(1) != value.toString()) {
                 // construct new value from current IP and new port
@@ -429,11 +423,6 @@ bool OptionsModel::setData(const QModelIndex & index, const QVariant & value, in
             fCoinControlFeatures = value.toBool();
             settings.setValue("fCoinControlFeatures", fCoinControlFeatures);
             Q_EMIT coinControlFeaturesChanged(fCoinControlFeatures);
-            break;
-        case enableRapAddresses:
-            fenableRapAddresses = value.toBool();
-            settings.setValue("fenableRapAddresses", fenableRapAddresses);
-            Q_EMIT enableRapAddressesChanged(fenableRapAddresses);
             break;
         case AutoAnonymize:
             fAutoAnonymize = value.toBool();
@@ -483,24 +472,6 @@ void OptionsModel::setDisplayUnit(const QVariant &value)
         settings.setValue("nDisplayUnit", nDisplayUnit);
         Q_EMIT displayUnitChanged(nDisplayUnit);
     }
-}
-
-bool OptionsModel::getProxySettings(QNetworkProxy& proxy) const
-{
-    // Directly query current base proxy, because
-    // GUI settings can be overridden with -proxy.
-    proxyType curProxy;
-    if (GetProxy(NET_IPV4, curProxy)) {
-        proxy.setType(QNetworkProxy::Socks5Proxy);
-        proxy.setHostName(QString::fromStdString(curProxy.proxy.ToStringIP()));
-        proxy.setPort(curProxy.proxy.GetPort());
-
-        return true;
-    }
-    else
-        proxy.setType(QNetworkProxy::NoProxy);
-
-    return false;
 }
 
 void OptionsModel::setRestartRequired(bool fRequired)

@@ -55,6 +55,7 @@ LIBBITCOIN_CONSENSUS=libbitcoin_consensus.a
 LIBBITCOIN_CLI=libbitcoin_cli.a
 LIBBITCOIN_UTIL=libbitcoin_util.a
 LIBLELANTUS=liblelantus.a
+LIBSPARK=libspark.a
 LIBBITCOIN_CRYPTO=crypto/libbitcoin_crypto.a
 LIBBITCOINQT=qt/libfiroqt.a
 LIBSECP256K1=secp256k1/libsecp256k1.la
@@ -86,7 +87,8 @@ EXTRA_LIBRARIES += \
   $(LIBBITCOIN_WALLET) \
   $(LIBBITCOIN_ZMQ) \
   $(LIBFIRO_SIGMA) \
-  $(LIBLELANTUS)
+  $(LIBLELANTUS) \
+  $(LIBSPARK)
 
 lib_LTLIBRARIES = $(LIBBITCOINCONSENSUS)
 
@@ -216,6 +218,8 @@ BITCOIN_CORE_H = \
   wallet/sigmaspendbuilder.h \
   wallet/txbuilder.h \
   wallet/lelantusjoinsplitbuilder.h \
+  spark/sparkwallet.h \
+  spark/primitives.h \
   wallet/wallet.h \
   wallet/walletexcept.h \
   wallet/walletdb.h \
@@ -239,6 +243,7 @@ BITCOIN_CORE_H = \
   bip47/secretpoint.h \
   sigma.h \
   lelantus.h \
+  spark/state.h \
   blacklists.h \
   coin_containers.h \
   firo_params.h \
@@ -262,63 +267,77 @@ BITCOIN_CORE_H = \
   llmq/quorums_chainlocks.h\
   llmq/quorums_init.h \
   llmq/quorums_signing_shares.h \
-  immer/atom.hpp \
-  immer/set.hpp \
-  immer/box.hpp \
-  immer/flex_vector_transient.hpp \
-  immer/transience/no_transience_policy.hpp \
-  immer/transience/gc_transience_policy.hpp \
+  immer/array_transient.hpp \
   immer/map_transient.hpp \
-  immer/set_transient.hpp \
-  immer/flex_vector.hpp \
-  immer/refcount/enable_intrusive_ptr.hpp \
-  immer/refcount/no_refcount_policy.hpp \
-  immer/refcount/unsafe_refcount_policy.hpp \
-  immer/refcount/refcount_policy.hpp \
-  immer/memory_policy.hpp \
+  immer/map.hpp \
+  immer/lock \
+  immer/lock/no_lock_policy.hpp \
+  immer/lock/spinlock_policy.hpp \
+  immer/heap \
+  immer/heap/heap_policy.hpp \
+  immer/heap/thread_local_free_list_heap.hpp \
+  immer/heap/tags.hpp \
+  immer/heap/split_heap.hpp \
+  immer/heap/with_data.hpp \
+  immer/heap/unsafe_free_list_heap.hpp \
+  immer/heap/cpp_heap.hpp \
+  immer/heap/malloc_heap.hpp \
+  immer/heap/gc_heap.hpp \
+  immer/heap/debug_size_heap.hpp \
+  immer/heap/free_list_heap.hpp \
+  immer/heap/identity_heap.hpp \
+  immer/heap/free_list_node.hpp \
+  immer/set.hpp \
+  immer/vector_transient.hpp \
+  immer/atom.hpp \
   immer/config.hpp \
-  immer/array.hpp \
+  immer/experimental \
+  immer/experimental/dvektor.hpp \
+  immer/experimental/detail \
+  immer/experimental/detail/dvektor_impl.hpp \
+  immer/algorithm.hpp \
+  immer/table.hpp \
+  immer/memory_policy.hpp \
+  immer/refcount \
+  immer/refcount/unsafe_refcount_policy.hpp \
+  immer/refcount/no_refcount_policy.hpp \
+  immer/refcount/enable_intrusive_ptr.hpp \
+  immer/refcount/refcount_policy.hpp \
+  immer/transience \
+  immer/transience/gc_transience_policy.hpp \
+  immer/transience/no_transience_policy.hpp \
+  immer/flex_vector.hpp \
+  immer/box.hpp \
   immer/vector.hpp \
-  immer/detail/arrays/no_capacity.hpp \
-  immer/detail/arrays/node.hpp \
-  immer/detail/arrays/with_capacity.hpp \
-  immer/detail/type_traits.hpp \
-  immer/detail/rbts/rbtree_iterator.hpp \
+  immer/array.hpp \
+  immer/set_transient.hpp \
+  immer/detail \
+  immer/detail/rbts \
+  immer/detail/rbts/operations.hpp \
   immer/detail/rbts/rbtree.hpp \
-  immer/detail/rbts/rrbtree.hpp \
+  immer/detail/rbts/rbtree_iterator.hpp \
   immer/detail/rbts/visitor.hpp \
+  immer/detail/rbts/rrbtree_iterator.hpp \
+  immer/detail/rbts/rrbtree.hpp \
+  immer/detail/rbts/node.hpp \
   immer/detail/rbts/position.hpp \
   immer/detail/rbts/bits.hpp \
-  immer/detail/rbts/node.hpp \
-  immer/detail/rbts/operations.hpp \
-  immer/detail/rbts/rrbtree_iterator.hpp \
-  immer/detail/combine_standard_layout.hpp \
   immer/detail/ref_count_base.hpp \
-  immer/detail/hamts/champ_iterator.hpp \
-  immer/detail/hamts/champ.hpp \
-  immer/detail/hamts/bits.hpp \
-  immer/detail/hamts/node.hpp \
+  immer/detail/arrays \
+  immer/detail/arrays/with_capacity.hpp \
+  immer/detail/arrays/node.hpp \
+  immer/detail/arrays/no_capacity.hpp \
   immer/detail/util.hpp \
+  immer/detail/hamts \
+  immer/detail/hamts/champ.hpp \
+  immer/detail/hamts/champ_iterator.hpp \
+  immer/detail/hamts/node.hpp \
+  immer/detail/hamts/bits.hpp \
+  immer/detail/type_traits.hpp \
   immer/detail/iterator_facade.hpp \
-  immer/vector_transient.hpp \
-  immer/experimental/dvektor.hpp \
-  immer/experimental/detail/dvektor_impl.hpp \
-  immer/heap/free_list_heap.hpp \
-  immer/heap/tags.hpp \
-  immer/heap/debug_size_heap.hpp \
-  immer/heap/heap_policy.hpp \
-  immer/heap/gc_heap.hpp \
-  immer/heap/unsafe_free_list_heap.hpp \
-  immer/heap/split_heap.hpp \
-  immer/heap/identity_heap.hpp \
-  immer/heap/thread_local_free_list_heap.hpp \
-  immer/heap/malloc_heap.hpp \
-  immer/heap/cpp_heap.hpp \
-  immer/heap/free_list_node.hpp \
-  immer/heap/with_data.hpp \
-  immer/algorithm.hpp \
-  immer/array_transient.hpp \
-  immer/map.hpp
+  immer/detail/combine_standard_layout.hpp \
+  immer/flex_vector_transient.hpp \
+  immer/table_transient.hpp
 
 obj/build.h: FORCE
 	@$(MKDIR_P) $(builddir)/obj
@@ -330,6 +349,7 @@ libbitcoin_util_a-clientversion.$(OBJEXT): obj/build.h
 libbitcoin_server_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(MINIUPNPC_CPPFLAGS) $(EVENT_CFLAGS) $(EVENT_PTHREADS_CFLAGS)
 libbitcoin_server_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libbitcoin_server_a_SOURCES = \
+  activemasternode.cpp \
   addrman.cpp \
   addrdb.cpp \
   batchedlogger.cpp \
@@ -401,6 +421,9 @@ libbitcoin_server_a_SOURCES = \
   versionbits.cpp \
   sigma.cpp \
   lelantus.cpp \
+  bip47/paymentcode.cpp \
+  spark/state.cpp \
+  spark/primitives.cpp \
   coin_containers.cpp \
   mtpstate.cpp \
   $(BITCOIN_CORE_H)
@@ -427,6 +450,7 @@ libbitcoin_wallet_a_SOURCES = \
   hdmint/wallet.cpp \
   sigma.cpp \
   lelantus.cpp \
+  spark/state.cpp \
   wallet/crypter.cpp \
   wallet/bip39.cpp \
   wallet/mnemoniccontainer.cpp \
@@ -438,6 +462,8 @@ libbitcoin_wallet_a_SOURCES = \
   wallet/lelantusjoinsplitbuilder.cpp \
   wallet/walletexcept.cpp \
   wallet/wallet.cpp \
+  spark/sparkwallet.cpp \
+  spark/primitives.cpp \
   wallet/walletdb.cpp \
   wallet/authhelper.cpp \
   hdmint/tracker.cpp \
@@ -625,6 +651,46 @@ libbitcoin_util_a_SOURCES = \
   crypto/MerkleTreeProof/merkle-tree.cpp \
   $(BITCOIN_CORE_H)
 
+libspark_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
+libspark_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+libspark_a_SOURCES = \
+  libspark/transcript.h \
+  libspark/transcript.cpp \
+  libspark/params.h \
+  libspark/params.cpp \
+  libspark/schnorr_proof.h \
+  libspark/schnorr.h \
+  libspark/schnorr.cpp \
+  libspark/chaum_proof.h \
+  libspark/chaum.h \
+  libspark/chaum.cpp \
+  libspark/coin.h \
+  libspark/coin.cpp \
+  libspark/bpplus_proof.h \
+  libspark/bpplus.h \
+  libspark/bpplus.cpp \
+  libspark/grootle_proof.h \
+  libspark/grootle.h \
+  libspark/grootle.cpp \
+  libspark/keys.h \
+  libspark/keys.cpp \
+  libspark/util.h \
+  libspark/util.cpp \
+  libspark/aead.h \
+  libspark/aead.cpp \
+  libspark/kdf.h \
+  libspark/kdf.cpp \
+  libspark/hash.h \
+  libspark/hash.cpp \
+  libspark/mint_transaction.h \
+  libspark/mint_transaction.cpp \
+  libspark/spend_transaction.h \
+  libspark/spend_transaction.cpp \
+  libspark/f4grumble.h \
+  libspark/f4grumble.cpp \
+  libspark/bech32.h \
+  libspark/bech32.cpp
+
 liblelantus_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
 liblelantus_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 liblelantus_a_SOURCES = \
@@ -730,6 +796,7 @@ firod_LDADD = \
   $(LIBBITCOIN_WALLET) \
   $(LIBFIRO_SIGMA) \
   $(LIBLELANTUS) \
+  $(LIBSPARK) \
   $(LIBBITCOIN_ZMQ) \
   $(LIBBITCOIN_CONSENSUS) \
   $(LIBBITCOIN_CRYPTO) \
@@ -870,13 +937,13 @@ if ENABLE_QT
 include Makefile.qt.include
 endif
 
+if ENABLE_QT_TESTS
+include Makefile.qttest.include
+endif
+
 if ENABLE_TESTS
 include Makefile.test.include
 else
 check-local:
 	$(error Please rerun configure with tests enabling flag)
-endif
-
-if ENABLE_ELYSIUM
-include Makefile.elysium.include
 endif
